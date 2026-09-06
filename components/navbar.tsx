@@ -10,7 +10,8 @@ import { Button } from "@/components/ui/button";
 import { ArrowUpRight, Menu, Moon, Sun, X } from "lucide-react";
 import Link from "next/link";
 import type { CSSProperties } from "react";
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useState } from "react";
+import { toggleTheme, useIsDarkMode } from "@/components/theme-store";
 
 const links = [
   { label: "Overview", href: "#focus" },
@@ -19,53 +20,11 @@ const links = [
   { label: "Pricing", href: "#pricing" },
 ];
 
-const themeListeners = new Set<() => void>();
-
-function subscribeToTheme(listener: () => void) {
-  themeListeners.add(listener);
-  return () => themeListeners.delete(listener);
-}
-
-function getThemeSnapshot() {
-  return document.documentElement.classList.contains("dark");
-}
-
-function getServerThemeSnapshot() {
-  return false;
-}
-
-function notifyThemeChange() {
-  themeListeners.forEach((listener) => listener());
-}
-
 export function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const isDark = useSyncExternalStore(
-    subscribeToTheme,
-    getThemeSnapshot,
-    getServerThemeSnapshot,
-  );
-
-  useEffect(() => {
-    const savedTheme = window.localStorage.getItem("aimify-theme");
-    const prefersDark = window.matchMedia(
-      "(prefers-color-scheme: dark)",
-    ).matches;
-    const shouldUseDark = savedTheme === "dark" || (!savedTheme && prefersDark);
-
-    document.documentElement.classList.toggle("dark", shouldUseDark);
-    notifyThemeChange();
-  }, []);
+  const isDark = useIsDarkMode();
 
   const closeMenu = () => setIsMenuOpen(false);
-
-  const toggleTheme = () => {
-    const nextIsDark = !isDark;
-
-    document.documentElement.classList.toggle("dark", nextIsDark);
-    window.localStorage.setItem("aimify-theme", nextIsDark ? "dark" : "light");
-    notifyThemeChange();
-  };
 
   return (
     <header className="nav-panel w-full px-4 py-3 sm:px-6 lg:px-10">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { signOut } from "next-auth/react";
 import { PasswordInput } from "@/components/password-input";
 import { resetOnboarding, useOnboardingState } from "@/components/onboarding-store";
 
@@ -14,12 +14,11 @@ const roles = [
 ];
 
 export default function DashboardSettingsPage() {
-  const router = useRouter();
   const state = useOnboardingState();
 
-  const handleSignOut = () => {
+  const handleSignOut = async () => {
     resetOnboarding();
-    router.push("/signin");
+    await signOut({ redirectTo: "/signin" });
   };
 
   return (

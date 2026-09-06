@@ -16,6 +16,7 @@ import {
   Sun,
   X,
 } from "lucide-react";
+import { signOut } from "next-auth/react";
 import {
   nextIncompleteStep,
   resetOnboarding,
@@ -47,9 +48,9 @@ export function DashboardShell({ children }: { children: ReactNode }) {
 
   const closeMenu = () => setIsMenuOpen(false);
 
-  const handleSignOut = () => {
+  const handleSignOut = async () => {
     resetOnboarding();
-    router.push("/signin");
+    await signOut({ redirectTo: "/signin" });
   };
 
   if (redirectTo) {

@@ -904,7 +904,9 @@
 
   .footer-bottom {
     flex-direction: column;
+    align-items: center;
     gap: 0.4rem;
+    text-align: center;
   }
 
   .works-connector {
@@ -2940,6 +2942,17 @@
   border-bottom: 1px solid rgb(36 36 36 / 8%);
   padding: 0.7rem 0.75rem;
   color: var(--aimify-ink);
+}
+
+.dash-table th:nth-child(2),
+.dash-table td:nth-child(2) {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.dash-table th:nth-child(3),
+.dash-table td:nth-child(3) {
+  text-align: center;
 }
 
 .dash-badge {

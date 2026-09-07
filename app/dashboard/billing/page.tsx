@@ -2,6 +2,7 @@
 
 import { Check } from "lucide-react";
 import { useDashboardContext } from "@/components/dashboard-context";
+import { formatDate } from "@/lib/format-date";
 
 const planFeatures = [
   "Real-time inventory across your warehouse",
@@ -10,14 +11,6 @@ const planFeatures = [
   "WhatsApp alerts & repayment reminders",
   "Full audit trail on every transaction",
 ];
-
-function formatDate(date: Date | string) {
-  return new Date(date).toLocaleDateString(undefined, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-}
 
 export default function DashboardBillingPage() {
   const { organization } = useDashboardContext();

@@ -3,16 +3,13 @@
 import Link from "next/link";
 import { ArrowUpRight, Check } from "lucide-react";
 import { useDashboardContext } from "@/components/dashboard-context";
+import { formatDate } from "@/lib/format-date";
 
 export default function DashboardOverviewPage() {
   const { user, organization, role } = useDashboardContext();
   const firstName = user.name.split(" ")[0] || "there";
   const trialEndsAt = organization.trialEndsAt
-    ? new Date(organization.trialEndsAt).toLocaleDateString(undefined, {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-      })
+    ? formatDate(organization.trialEndsAt)
     : null;
 
   return (

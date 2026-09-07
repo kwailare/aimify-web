@@ -9,40 +9,81 @@ import {
 import { Button } from "@/components/ui/button";
 import { ArrowUpRight, Menu, Moon, Sun, X } from "lucide-react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import type { CSSProperties } from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toggleTheme, useIsDarkMode } from "@/components/theme-store";
 
 const links = [
-  { label: "Overview", href: "#focus" },
-  { label: "Features", href: "#features" },
-  { label: "How it works", href: "#method" },
-  { label: "Pricing", href: "#pricing" },
+  { label: "Overview", href: "/#focus" },
+  { label: "Features", href: "/#features" },
+  { label: "How it works", href: "/#method" },
+  { label: "Pricing", href: "/#pricing" },
 ];
 
 export function Navbar() {
+  const pathname = usePathname();
+  const isHome = pathname === "/";
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [activeHref, setActiveHref] = useState<string | null>(
+    isHome ? links[0].href : null,
+  );
   const isDark = useIsDarkMode();
 
   const closeMenu = () => setIsMenuOpen(false);
 
+  useEffect(() => {
+    if (!isHome) {
+      return;
+    }
+
+    const sections = links
+      .map((link) => document.getElementById(link.href.split("#")[1]))
+      .filter((section): section is HTMLElement => section !== null);
+
+    if (sections.length === 0) {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
+
+        if (visible[0]) {
+          setActiveHref(`/#${visible[0].target.id}`);
+        }
+      },
+      { rootMargin: "-80px 0px -55% 0px", threshold: [0, 0.25, 0.5, 0.75, 1] },
+    );
+
+    sections.forEach((section) => observer.observe(section));
+
+    return () => observer.disconnect();
+  }, [isHome]);
+
   return (
     <header className="nav-panel w-full px-4 py-3 sm:px-6 lg:px-10">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-6">
-        <a
+        <Link
           className="nav-brand inline-flex items-baseline"
-          href="#top"
+          href="/#top"
           onClick={closeMenu}
         >
           <span className="brand-primary">Aimi</span>
           <span className="brand-accent">fy</span>
-        </a>
+        </Link>
         <div className="hidden items-center gap-7 lg:flex">
           <NavigationMenu>
             <NavigationMenuList className="gap-1">
               {links.map((link) => (
                 <NavigationMenuItem key={link.href}>
-                  <NavigationMenuLink className="nav-link" href={link.href}>
+                  <NavigationMenuLink
+                    className={`nav-link ${activeHref === link.href ? "is-active" : ""}`}
+                    href={link.href}
+                    onClick={() => setActiveHref(link.href)}
+                  >
                     {link.label}
                   </NavigationMenuLink>
                 </NavigationMenuItem>
@@ -88,15 +129,18 @@ export function Navbar() {
       >
         <nav aria-label="Mobile navigation" className="grid gap-1 pt-4">
           {links.map((link, index) => (
-            <a
+            <Link
               key={link.href}
               href={link.href}
-              className="nav-mobile-link"
+              className={`nav-mobile-link ${activeHref === link.href ? "is-active" : ""}`}
               style={{ "--link-index": index } as CSSProperties}
-              onClick={closeMenu}
+              onClick={() => {
+                setActiveHref(link.href);
+                closeMenu();
+              }}
             >
               {link.label}
-            </a>
+            </Link>
           ))}
           <Button
             variant="outline"

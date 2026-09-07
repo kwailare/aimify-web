@@ -68,8 +68,8 @@ export function SignUpForm() {
       />
       <label className="auth-checkbox-row">
         <input type="checkbox" name="terms" required />
-        I agree to the <Link href="/#terms">Terms of Service</Link> and{" "}
-        <Link href="/#privacy">Privacy Policy</Link>
+        I agree to the <Link href="/terms">Terms of Service</Link> and{" "}
+        <Link href="/privacy">Privacy Policy</Link>
       </label>
       {error && <p className="auth-error">{error}</p>}
       <button className="auth-submit" type="submit" disabled={isPending}>

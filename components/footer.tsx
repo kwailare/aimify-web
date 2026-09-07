@@ -3,17 +3,17 @@ import Image from "next/image";
 import Link from "next/link";
 
 const productLinks = [
-  { label: "Overview", href: "#focus" },
-  { label: "Features", href: "#features" },
-  { label: "How it works", href: "#method" },
-  { label: "Pricing", href: "#pricing" },
+  { label: "Overview", href: "/#focus" },
+  { label: "Features", href: "/#features" },
+  { label: "How it works", href: "/#method" },
+  { label: "Pricing", href: "/#pricing" },
 ];
 
 const companyLinks = [
-  { label: "About Aimify", href: "#about" },
-  { label: "Contact", href: "#contact" },
-  { label: "Privacy", href: "#privacy" },
-  { label: "Terms", href: "#terms" },
+  { label: "About Aimify", href: "/about" },
+  { label: "Contact", href: "/contact" },
+  { label: "Privacy", href: "/privacy" },
+  { label: "Terms", href: "/terms" },
 ];
 
 export function Footer() {
@@ -21,7 +21,7 @@ export function Footer() {
     <footer className="footer-panel w-full px-7 pb-6 pt-12 sm:px-12 lg:px-16">
       <div className="footer-main">
         <div className="footer-brand max-w-sm">
-          <a className="footer-logo-link" href="#top">
+          <Link className="footer-logo-link" href="/#top">
             <Image
               className="footer-logo"
               src="/assets/image/logo.png"
@@ -30,7 +30,7 @@ export function Footer() {
               height={48}
             />
             <span>Aimify</span>
-          </a>
+          </Link>
           <p>
             One secure, auditable platform for inventory, sales, purchases
             and credit — built for wholesalers, distributors and retailers.
@@ -44,9 +44,9 @@ export function Footer() {
           <h2>Product</h2>
           <nav aria-label="Product links">
             {productLinks.map((link) => (
-              <a href={link.href} key={link.href}>
+              <Link href={link.href} key={link.href}>
                 {link.label}
-              </a>
+              </Link>
             ))}
           </nav>
         </div>
@@ -54,9 +54,9 @@ export function Footer() {
           <h2>Company</h2>
           <nav aria-label="Company links">
             {companyLinks.map((link) => (
-              <a href={link.href} key={link.href}>
+              <Link href={link.href} key={link.href}>
                 {link.label}
-              </a>
+              </Link>
             ))}
           </nav>
         </div>

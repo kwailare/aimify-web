@@ -2,7 +2,7 @@
 
 import { signOut } from "next-auth/react";
 import { PasswordInput } from "@/components/password-input";
-import { resetOnboarding, useOnboardingState } from "@/components/onboarding-store";
+import { useDashboardContext } from "@/components/dashboard-context";
 
 const roles = [
   "Owner",
@@ -14,10 +14,9 @@ const roles = [
 ];
 
 export default function DashboardSettingsPage() {
-  const state = useOnboardingState();
+  const { user, role } = useDashboardContext();
 
   const handleSignOut = async () => {
-    resetOnboarding();
     await signOut({ redirectTo: "/signin" });
   };
 
@@ -42,17 +41,17 @@ export default function DashboardSettingsPage() {
               className="auth-input"
               id="settings-name"
               type="text"
-              defaultValue={state.fullName}
+              defaultValue={user.name}
             />
           </div>
           <div className="auth-field">
             <label className="auth-label" htmlFor="settings-role">
               Role
             </label>
-            <select className="auth-input" id="settings-role" defaultValue={state.role || roles[0]}>
-              {roles.map((role) => (
-                <option key={role} value={role}>
-                  {role}
+            <select className="auth-input" id="settings-role" defaultValue={role || roles[0]}>
+              {roles.map((option) => (
+                <option key={option} value={option}>
+                  {option}
                 </option>
               ))}
             </select>
@@ -66,7 +65,7 @@ export default function DashboardSettingsPage() {
             className="auth-input"
             id="settings-email"
             type="email"
-            defaultValue="you@company.com"
+            defaultValue={user.email}
             disabled
           />
         </div>

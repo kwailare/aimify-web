@@ -3,7 +3,7 @@
 import { ArrowUpRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
-import { completeOrganization } from "@/components/onboarding-store";
+import { completeOrganizationAction } from "@/lib/actions/onboarding";
 
 const industries = [
   "Wholesale",
@@ -13,15 +13,42 @@ const industries = [
   "Other",
 ];
 
-const currencies = ["NGN — Naira", "USD — Dollar", "GHS — Cedi", "KES — Shilling"];
+const currencies = [
+  { code: "NGN", label: "Naira" },
+  { code: "USD", label: "Dollar" },
+  { code: "GHS", label: "Cedi" },
+  { code: "KES", label: "Shilling" },
+];
+
+const roles = [
+  "Owner",
+  "Administrator",
+  "Warehouse Manager",
+  "Sales Staff",
+  "Inventory Staff",
+  "Accountant / Finance",
+];
 
 export function OnboardingOrganizationForm() {
   const router = useRouter();
-  const [companyName, setCompanyName] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [isPending, setIsPending] = useState(false);
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    completeOrganization(companyName.trim() || "Your organization");
+    setError(null);
+    setIsPending(true);
+
+    const formData = new FormData(event.currentTarget);
+    const result = await completeOrganizationAction(formData);
+
+    setIsPending(false);
+
+    if (result?.error) {
+      setError(result.error);
+      return;
+    }
+
     router.push("/onboarding/subscription");
   };
 
@@ -38,8 +65,6 @@ export function OnboardingOrganizationForm() {
           type="text"
           autoComplete="organization"
           placeholder="Obi Distribution Ltd"
-          value={companyName}
-          onChange={(event) => setCompanyName(event.target.value)}
           required
         />
       </div>
@@ -62,8 +87,8 @@ export function OnboardingOrganizationForm() {
           </label>
           <select className="auth-input" id="org-currency" name="currency">
             {currencies.map((option) => (
-              <option key={option} value={option}>
-                {option}
+              <option key={option.code} value={option.code}>
+                {option.code} — {option.label}
               </option>
             ))}
           </select>
@@ -82,8 +107,21 @@ export function OnboardingOrganizationForm() {
           required
         />
       </div>
-      <button className="auth-submit" type="submit">
-        Continue
+      <div className="auth-field">
+        <label className="auth-label" htmlFor="org-role">
+          Your role at this organization
+        </label>
+        <select className="auth-input" id="org-role" name="role">
+          {roles.map((option) => (
+            <option key={option} value={option}>
+              {option}
+            </option>
+          ))}
+        </select>
+      </div>
+      {error && <p className="auth-error">{error}</p>}
+      <button className="auth-submit" type="submit" disabled={isPending}>
+        {isPending ? "Saving…" : "Continue"}
         <ArrowUpRight size={16} aria-hidden="true" />
       </button>
     </form>

@@ -3,7 +3,7 @@
 import { ArrowUpRight, Check } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
-import { completeSubscription } from "@/components/onboarding-store";
+import { completeSubscriptionAction } from "@/lib/actions/onboarding";
 
 const planFeatures = [
   "Real-time inventory across your warehouse",
@@ -18,10 +18,23 @@ const paymentMethods = ["Card", "Bank transfer", "USSD"];
 export function OnboardingSubscriptionForm() {
   const router = useRouter();
   const [method, setMethod] = useState(paymentMethods[0]);
+  const [error, setError] = useState<string | null>(null);
+  const [isPending, setIsPending] = useState(false);
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    completeSubscription();
+    setError(null);
+    setIsPending(true);
+
+    const result = await completeSubscriptionAction();
+
+    setIsPending(false);
+
+    if (result?.error) {
+      setError(result.error);
+      return;
+    }
+
     router.push("/onboarding/download");
   };
 
@@ -70,8 +83,9 @@ export function OnboardingSubscriptionForm() {
         You won&apos;t be charged until your 14-day trial ends. Cancel
         anytime from Billing.
       </p>
-      <button className="auth-submit" type="submit">
-        Confirm & start trial
+      {error && <p className="auth-error">{error}</p>}
+      <button className="auth-submit" type="submit" disabled={isPending}>
+        {isPending ? "Starting trial…" : "Confirm & start trial"}
         <ArrowUpRight size={16} aria-hidden="true" />
       </button>
     </form>

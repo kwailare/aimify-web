@@ -2,11 +2,18 @@
 
 import Link from "next/link";
 import { ArrowUpRight, Check } from "lucide-react";
-import { useOnboardingState } from "@/components/onboarding-store";
+import { useDashboardContext } from "@/components/dashboard-context";
 
 export default function DashboardOverviewPage() {
-  const state = useOnboardingState();
-  const firstName = state.fullName.split(" ")[0] || "there";
+  const { user, organization, role } = useDashboardContext();
+  const firstName = user.name.split(" ")[0] || "there";
+  const trialEndsAt = organization.trialEndsAt
+    ? new Date(organization.trialEndsAt).toLocaleDateString(undefined, {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      })
+    : null;
 
   return (
     <div className="dash-stack">
@@ -14,8 +21,8 @@ export default function DashboardOverviewPage() {
         <p className="dash-page-eyebrow">Overview</p>
         <h1 className="dash-page-title">Welcome back, {firstName}</h1>
         <p className="dash-page-subtitle">
-          Here&apos;s the current state of {state.companyName || "your organization"}
-          &apos;s Aimify account.
+          Here&apos;s the current state of {organization.name}&apos;s Aimify
+          account.
         </p>
       </div>
 
@@ -36,17 +43,24 @@ export default function DashboardOverviewPage() {
       <div className="dash-grid">
         <div className="dash-card">
           <p className="dash-card-label">Organization</p>
-          <p className="dash-card-value">{state.companyName || "—"}</p>
-          <p className="dash-card-note">Single warehouse · Naira (NGN)</p>
+          <p className="dash-card-value">{organization.name}</p>
+          <p className="dash-card-note">
+            {organization.warehouseName || "No warehouse set"} ·{" "}
+            {organization.currency}
+          </p>
         </div>
         <div className="dash-card">
           <p className="dash-card-label">Subscription</p>
           <p className="dash-card-value">Full Access</p>
-          <p className="dash-card-note">14-day trial · ₦25,000 / month after</p>
+          <p className="dash-card-note">
+            {trialEndsAt
+              ? `Trial ends ${trialEndsAt} · ₦25,000 / month after`
+              : "₦25,000 / month"}
+          </p>
         </div>
         <div className="dash-card">
           <p className="dash-card-label">Your role</p>
-          <p className="dash-card-value">{state.role || "—"}</p>
+          <p className="dash-card-value">{role}</p>
           <p className="dash-card-note">Manage roles in Settings</p>
         </div>
       </div>

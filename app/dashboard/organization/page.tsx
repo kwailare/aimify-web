@@ -1,9 +1,24 @@
 "use client";
 
-import { useOnboardingState } from "@/components/onboarding-store";
+import { useDashboardContext } from "@/components/dashboard-context";
+
+const industries = [
+  "Wholesale",
+  "Distribution",
+  "Retail",
+  "Warehousing",
+  "Other",
+];
+
+const currencies = [
+  { code: "NGN", label: "Naira" },
+  { code: "USD", label: "Dollar" },
+  { code: "GHS", label: "Cedi" },
+  { code: "KES", label: "Shilling" },
+];
 
 export default function DashboardOrganizationPage() {
-  const state = useOnboardingState();
+  const { organization } = useDashboardContext();
 
   return (
     <div className="dash-stack">
@@ -25,7 +40,7 @@ export default function DashboardOrganizationPage() {
             <input
               className="auth-input"
               id="dash-org-name"
-              defaultValue={state.companyName}
+              defaultValue={organization.name}
               type="text"
             />
           </div>
@@ -33,12 +48,16 @@ export default function DashboardOrganizationPage() {
             <label className="auth-label" htmlFor="dash-org-industry">
               Industry
             </label>
-            <select className="auth-input" id="dash-org-industry" defaultValue="Wholesale">
-              <option>Wholesale</option>
-              <option>Distribution</option>
-              <option>Retail</option>
-              <option>Warehousing</option>
-              <option>Other</option>
+            <select
+              className="auth-input"
+              id="dash-org-industry"
+              defaultValue={organization.industry ?? industries[0]}
+            >
+              {industries.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
             </select>
           </div>
         </div>
@@ -47,11 +66,16 @@ export default function DashboardOrganizationPage() {
             <label className="auth-label" htmlFor="dash-org-currency">
               Currency
             </label>
-            <select className="auth-input" id="dash-org-currency" defaultValue="NGN — Naira">
-              <option>NGN — Naira</option>
-              <option>USD — Dollar</option>
-              <option>GHS — Cedi</option>
-              <option>KES — Shilling</option>
+            <select
+              className="auth-input"
+              id="dash-org-currency"
+              defaultValue={organization.currency}
+            >
+              {currencies.map((option) => (
+                <option key={option.code} value={option.code}>
+                  {option.code} — {option.label}
+                </option>
+              ))}
             </select>
           </div>
           <div className="auth-field">
@@ -62,6 +86,7 @@ export default function DashboardOrganizationPage() {
               className="auth-input"
               id="dash-org-warehouse"
               type="text"
+              defaultValue={organization.warehouseName ?? ""}
               placeholder="Main warehouse — Lagos"
             />
           </div>

@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
+import { auth } from "@/auth";
 import { OnboardingShell } from "@/components/onboarding-shell";
 import { OnboardingProfileForm } from "@/components/onboarding-profile-form";
 
@@ -6,7 +8,13 @@ export const metadata: Metadata = {
   title: "Set up your profile | Aimify",
 };
 
-export default function OnboardingProfilePage() {
+export default async function OnboardingProfilePage() {
+  const session = await auth();
+
+  if (!session?.user?.id) {
+    redirect("/signin");
+  }
+
   return (
     <OnboardingShell
       step={1}

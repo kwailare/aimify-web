@@ -1,6 +1,7 @@
 "use client";
 
 import { Check } from "lucide-react";
+import { useDashboardContext } from "@/components/dashboard-context";
 
 const planFeatures = [
   "Real-time inventory across your warehouse",
@@ -10,12 +11,32 @@ const planFeatures = [
   "Full audit trail on every transaction",
 ];
 
-const invoices = [
-  { date: "Trial started", amount: "₦0", status: "Active" },
-  { date: "Next charge in 14 days", amount: "₦25,000", status: "Upcoming" },
-];
+function formatDate(date: Date | string) {
+  return new Date(date).toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
 
 export default function DashboardBillingPage() {
+  const { organization } = useDashboardContext();
+
+  const invoices = [
+    {
+      date: `Trial started ${formatDate(organization.createdAt)}`,
+      amount: "₦0",
+      status: "Active",
+    },
+    {
+      date: organization.trialEndsAt
+        ? `Trial ends ${formatDate(organization.trialEndsAt)}`
+        : "Trial end date not set",
+      amount: "₦25,000",
+      status: "Upcoming",
+    },
+  ];
+
   return (
     <div className="dash-stack">
       <div>
@@ -30,7 +51,11 @@ export default function DashboardBillingPage() {
         <div className="plan-summary-head">
           <div>
             <p className="plan-summary-name">Full Access</p>
-            <p className="plan-summary-note">14-day free trial · billed monthly after</p>
+            <p className="plan-summary-note">
+              {organization.subscriptionStatus === "trial"
+                ? "14-day free trial · billed monthly after"
+                : "Billed monthly"}
+            </p>
           </div>
           <p className="plan-summary-price">
             ₦25,000<span>/ month</span>

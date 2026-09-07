@@ -3,25 +3,28 @@
 import { ArrowUpRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
-import { completeProfile } from "@/components/onboarding-store";
-
-const roles = [
-  "Owner",
-  "Administrator",
-  "Warehouse Manager",
-  "Sales Staff",
-  "Inventory Staff",
-  "Accountant / Finance",
-];
+import { completeProfileAction } from "@/lib/actions/onboarding";
 
 export function OnboardingProfileForm() {
   const router = useRouter();
-  const [fullName, setFullName] = useState("");
-  const [role, setRole] = useState(roles[0]);
+  const [error, setError] = useState<string | null>(null);
+  const [isPending, setIsPending] = useState(false);
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    completeProfile(fullName.trim() || "There", role);
+    setError(null);
+    setIsPending(true);
+
+    const formData = new FormData(event.currentTarget);
+    const result = await completeProfileAction(formData);
+
+    setIsPending(false);
+
+    if (result?.error) {
+      setError(result.error);
+      return;
+    }
+
     router.push("/onboarding/organization");
   };
 
@@ -34,12 +37,10 @@ export function OnboardingProfileForm() {
         <input
           className="auth-input"
           id="profile-name"
-          name="fullName"
+          name="name"
           type="text"
           autoComplete="name"
           placeholder="Ada Obi"
-          value={fullName}
-          onChange={(event) => setFullName(event.target.value)}
           required
         />
       </div>
@@ -57,26 +58,9 @@ export function OnboardingProfileForm() {
           required
         />
       </div>
-      <div className="auth-field">
-        <label className="auth-label" htmlFor="profile-role">
-          Your role
-        </label>
-        <select
-          className="auth-input"
-          id="profile-role"
-          name="role"
-          value={role}
-          onChange={(event) => setRole(event.target.value)}
-        >
-          {roles.map((option) => (
-            <option key={option} value={option}>
-              {option}
-            </option>
-          ))}
-        </select>
-      </div>
-      <button className="auth-submit" type="submit">
-        Continue
+      {error && <p className="auth-error">{error}</p>}
+      <button className="auth-submit" type="submit" disabled={isPending}>
+        {isPending ? "Saving…" : "Continue"}
         <ArrowUpRight size={16} aria-hidden="true" />
       </button>
     </form>

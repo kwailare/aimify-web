@@ -1,10 +1,38 @@
-import { DashboardShell } from "@/components/dashboard-shell";
+import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
+import { getOrgContext } from "@/lib/org";
+import { DashboardShell } from "@/components/dashboard-shell";
 
-export default function DashboardLayout({
+export default async function DashboardLayout({
   children,
 }: {
   children: ReactNode;
 }) {
-  return <DashboardShell>{children}</DashboardShell>;
+  const context = await getOrgContext();
+
+  if (!context) {
+    redirect("/signin");
+  }
+
+  if (!context.user.phone) {
+    redirect("/onboarding/profile");
+  }
+
+  if (!context.membership) {
+    redirect("/onboarding/organization");
+  }
+
+  if (context.membership.organization.subscriptionStatus === "pending") {
+    redirect("/onboarding/subscription");
+  }
+
+  return (
+    <DashboardShell
+      user={context.user}
+      organization={context.membership.organization}
+      role={context.membership.role}
+    >
+      {children}
+    </DashboardShell>
+  );
 }

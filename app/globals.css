@@ -1947,6 +1947,10 @@
   box-shadow: 0 0 0 3px rgb(240 165 26 / 24%);
 }
 
+textarea.auth-input {
+  resize: none;
+}
+
 .auth-input-group {
   position: relative;
 }

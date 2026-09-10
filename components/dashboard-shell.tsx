@@ -8,6 +8,7 @@ import {
   Building2,
   CreditCard,
   Download,
+  History,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -24,6 +25,7 @@ import { toggleTheme, useIsDarkMode } from "@/components/theme-store";
 const navItems = [
   { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
   { href: "/dashboard/organization", label: "Organization", icon: Building2 },
+  { href: "/dashboard/activity", label: "Activity", icon: History },
   { href: "/dashboard/billing", label: "Billing", icon: CreditCard },
   { href: "/dashboard/download", label: "Download", icon: Download },
   { href: "/dashboard/settings", label: "Settings", icon: Settings },

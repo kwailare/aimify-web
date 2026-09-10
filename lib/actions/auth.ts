@@ -6,6 +6,7 @@ import { AuthError } from "next-auth";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { signIn } from "@/auth";
+import { logAudit } from "@/lib/audit";
 
 export async function signUpAction(formData: FormData) {
   const name = String(formData.get("name") ?? "").trim();
@@ -34,7 +35,18 @@ export async function signUpAction(formData: FormData) {
 
   const passwordHash = await hash(password, 10);
 
-  await db.insert(users).values({ name, email, passwordHash });
+  const [newUser] = await db
+    .insert(users)
+    .values({ name, email, passwordHash })
+    .returning();
+
+  await logAudit({
+    userId: newUser.id,
+    module: "auth",
+    action: "user.signed_up",
+    recordId: newUser.id,
+    newValue: { name, email },
+  });
 
   try {
     await signIn("credentials", { email, password, redirect: false });
@@ -67,6 +79,21 @@ export async function signInAction(formData: FormData) {
       return { error: "Invalid email or password." };
     }
     throw error;
+  }
+
+  const [signedInUser] = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(eq(users.email, email))
+    .limit(1);
+
+  if (signedInUser) {
+    await logAudit({
+      userId: signedInUser.id,
+      module: "auth",
+      action: "user.signed_in",
+      recordId: signedInUser.id,
+    });
   }
 
   return { success: true };

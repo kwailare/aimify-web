@@ -67,7 +67,7 @@ export default function DashboardBillingPage() {
       <div className="dash-card">
         <p className="dash-card-label">Billing history</p>
         <div className="dash-table-wrap">
-          <table className="dash-table">
+          <table className="dash-table dash-table--money">
             <thead>
               <tr>
                 <th>Date</th>

@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, uuid, text, timestamp, jsonb } from "drizzle-orm/pg-core";
 
 export const organizations = pgTable("organizations", {
   id: uuid().primaryKey().defaultRandom(),
@@ -29,5 +29,17 @@ export const memberships = pgTable("memberships", {
     .notNull()
     .references(() => organizations.id),
   role: text().notNull(),
+  createdAt: timestamp().defaultNow().notNull(),
+});
+
+export const auditLogs = pgTable("audit_logs", {
+  id: uuid().primaryKey().defaultRandom(),
+  organizationId: uuid().references(() => organizations.id),
+  userId: uuid().references(() => users.id),
+  module: text().notNull(),
+  action: text().notNull(),
+  recordId: text(),
+  previousValue: jsonb(),
+  newValue: jsonb(),
   createdAt: timestamp().defaultNow().notNull(),
 });

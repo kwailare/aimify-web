@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import { auth } from "@/auth";
 import { db } from "@/db";
 import { memberships, organizations, users } from "@/db/schema";
+import { logAudit } from "@/lib/audit";
 
 export async function completeProfileAction(formData: FormData) {
   const session = await auth();
@@ -19,7 +20,22 @@ export async function completeProfileAction(formData: FormData) {
     return { error: "Full name and phone number are required." };
   }
 
+  const [before] = await db
+    .select({ name: users.name, phone: users.phone })
+    .from(users)
+    .where(eq(users.id, session.user.id))
+    .limit(1);
+
   await db.update(users).set({ name, phone }).where(eq(users.id, session.user.id));
+
+  await logAudit({
+    userId: session.user.id,
+    module: "profile",
+    action: "profile.updated",
+    recordId: session.user.id,
+    previousValue: before,
+    newValue: { name, phone },
+  });
 
   return { success: true };
 }
@@ -52,6 +68,15 @@ export async function completeOrganizationAction(formData: FormData) {
     role,
   });
 
+  await logAudit({
+    organizationId: org.id,
+    userId: session.user.id,
+    module: "organization",
+    action: "organization.created",
+    recordId: org.id,
+    newValue: { name, industry, currency, warehouseName, role },
+  });
+
   return { success: true };
 }
 
@@ -72,6 +97,12 @@ export async function completeSubscriptionAction() {
     return { error: "Create your organization first." };
   }
 
+  const [before] = await db
+    .select({ subscriptionStatus: organizations.subscriptionStatus })
+    .from(organizations)
+    .where(eq(organizations.id, membership.organizationId))
+    .limit(1);
+
   const trialEndsAt = new Date();
   trialEndsAt.setDate(trialEndsAt.getDate() + 14);
 
@@ -79,6 +110,16 @@ export async function completeSubscriptionAction() {
     .update(organizations)
     .set({ subscriptionStatus: "trial", trialEndsAt })
     .where(eq(organizations.id, membership.organizationId));
+
+  await logAudit({
+    organizationId: membership.organizationId,
+    userId: session.user.id,
+    module: "subscription",
+    action: "subscription.activated",
+    recordId: membership.organizationId,
+    previousValue: before,
+    newValue: { subscriptionStatus: "trial", trialEndsAt },
+  });
 
   return { success: true };
 }

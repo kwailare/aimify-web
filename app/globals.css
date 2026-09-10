@@ -2955,14 +2955,14 @@ textarea.auth-input {
   color: var(--aimify-ink);
 }
 
-.dash-table th:nth-child(2),
-.dash-table td:nth-child(2) {
+.dash-table--money th:nth-child(2),
+.dash-table--money td:nth-child(2) {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
-.dash-table th:nth-child(3),
-.dash-table td:nth-child(3) {
+.dash-table--money th:nth-child(3),
+.dash-table--money td:nth-child(3) {
   text-align: center;
 }
 

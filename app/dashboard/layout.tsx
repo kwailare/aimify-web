@@ -26,6 +26,10 @@ export default async function DashboardLayout({
     redirect("/onboarding/subscription");
   }
 
+  if (context.membership.organization.subscriptionStatus === "suspended") {
+    redirect("/account-suspended");
+  }
+
   return (
     <DashboardShell
       user={context.user}

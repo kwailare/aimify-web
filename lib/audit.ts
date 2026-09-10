@@ -1,6 +1,6 @@
 import { desc, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { auditLogs, users } from "@/db/schema";
+import { auditLogs, organizations, users } from "@/db/schema";
 
 export async function logAudit(entry: {
   organizationId?: string | null;
@@ -38,6 +38,27 @@ export async function getRecentAuditLogs(organizationId: string, limit = 20) {
     .from(auditLogs)
     .leftJoin(users, eq(auditLogs.userId, users.id))
     .where(eq(auditLogs.organizationId, organizationId))
+    .orderBy(desc(auditLogs.createdAt))
+    .limit(limit);
+}
+
+export async function getAllAuditLogs(limit = 50) {
+  return db
+    .select({
+      id: auditLogs.id,
+      module: auditLogs.module,
+      action: auditLogs.action,
+      recordId: auditLogs.recordId,
+      previousValue: auditLogs.previousValue,
+      newValue: auditLogs.newValue,
+      createdAt: auditLogs.createdAt,
+      actorName: users.name,
+      actorEmail: users.email,
+      organizationName: organizations.name,
+    })
+    .from(auditLogs)
+    .leftJoin(users, eq(auditLogs.userId, users.id))
+    .leftJoin(organizations, eq(auditLogs.organizationId, organizations.id))
     .orderBy(desc(auditLogs.createdAt))
     .limit(limit);
 }

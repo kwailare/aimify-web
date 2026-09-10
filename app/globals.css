@@ -1548,7 +1548,8 @@ body::-webkit-scrollbar {
   .dash-nav-link,
   .dash-menu-button,
   .dash-signout,
-  .dash-danger-link {
+  .dash-danger-link,
+  .dash-table-action {
     transition: none;
   }
 
@@ -2214,6 +2215,11 @@ textarea.auth-input {
   box-shadow: 0 10px 22px rgb(216 139 0 / 26%);
 }
 
+.not-found-icon.is-warning {
+  background: linear-gradient(135deg, var(--aimify-warning), #ff8a6b);
+  box-shadow: 0 10px 22px rgb(209 69 59 / 30%);
+}
+
 .not-found-code {
   margin-top: 1.1rem;
   background: linear-gradient(
@@ -2237,6 +2243,10 @@ textarea.auth-input {
   font-size: 1.5rem;
   font-weight: 700;
   letter-spacing: -0.01em;
+}
+
+.not-found-icon + .not-found-title {
+  margin-top: 1.1rem;
 }
 
 .not-found-subtitle {
@@ -2646,6 +2656,32 @@ textarea.auth-input {
   border-bottom: 1px solid rgb(36 36 36 / 10%);
 }
 
+.admin-sidebar {
+  border-right-color: rgb(209 69 59 / 30%);
+}
+
+.admin-brand {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.admin-badge {
+  border-radius: 999px;
+  background: rgb(209 69 59 / 14%);
+  padding: 0.2rem 0.55rem;
+  color: var(--aimify-warning);
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.dark .admin-sidebar {
+  border-right-color: rgb(255 138 107 / 30%);
+}
+
 .dash-nav {
   display: grid;
   gap: 0.3rem;
@@ -2853,8 +2889,22 @@ textarea.auth-input {
   gap: 1rem;
 }
 
+.dash-grid--4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+@media (max-width: 1024px) {
+  .dash-grid--4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 767px) {
   .dash-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dash-grid--4 {
     grid-template-columns: 1fr;
   }
 }
@@ -2998,6 +3048,39 @@ textarea.auth-input {
 }
 
 .dash-danger-link:focus-visible {
+  outline: 3px solid var(--aimify-focus);
+  outline-offset: 2px;
+}
+
+.dash-table-action {
+  border: none;
+  background: none;
+  padding: 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 120ms ease;
+}
+
+.dash-table-action:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.dash-table-action.is-danger {
+  color: var(--aimify-warning);
+}
+
+.dash-table-action.is-positive {
+  color: var(--aimify-gold);
+}
+
+.dash-table-action:hover:not(:disabled),
+.dash-table-action:focus-visible:not(:disabled) {
+  opacity: 0.7;
+}
+
+.dash-table-action:focus-visible {
   outline: 3px solid var(--aimify-focus);
   outline-offset: 2px;
 }

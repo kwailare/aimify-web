@@ -32,6 +32,15 @@ export const memberships = pgTable("memberships", {
   createdAt: timestamp().defaultNow().notNull(),
 });
 
+export const adminUsers = pgTable("admin_users", {
+  id: uuid().primaryKey().defaultRandom(),
+  userId: uuid()
+    .notNull()
+    .unique()
+    .references(() => users.id),
+  createdAt: timestamp().defaultNow().notNull(),
+});
+
 export const auditLogs = pgTable("audit_logs", {
   id: uuid().primaryKey().defaultRandom(),
   organizationId: uuid().references(() => organizations.id),

@@ -3,17 +3,11 @@ import { auth } from "@/auth";
 import { db } from "@/db";
 import { memberships, organizations, users } from "@/db/schema";
 
-export async function getOrgContext() {
-  const session = await auth();
-
-  if (!session?.user?.id) {
-    return null;
-  }
-
+export async function getOrgContextForUser(userId: string) {
   const [user] = await db
     .select()
     .from(users)
-    .where(eq(users.id, session.user.id))
+    .where(eq(users.id, userId))
     .limit(1);
 
   if (!user) {
@@ -31,4 +25,14 @@ export async function getOrgContext() {
     user,
     membership: row ? { role: row.role, organization: row.organization } : null,
   };
+}
+
+export async function getOrgContext() {
+  const session = await auth();
+
+  if (!session?.user?.id) {
+    return null;
+  }
+
+  return getOrgContextForUser(session.user.id);
 }

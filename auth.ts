@@ -1,9 +1,6 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
-import { compare } from "bcryptjs";
-import { eq } from "drizzle-orm";
-import { db } from "@/db";
-import { users } from "@/db/schema";
+import { verifyCredentials } from "@/lib/credentials";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   session: { strategy: "jwt" },
@@ -18,9 +15,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
       async authorize(credentials) {
         const email =
-          typeof credentials?.email === "string"
-            ? credentials.email.toLowerCase()
-            : null;
+          typeof credentials?.email === "string" ? credentials.email : null;
         const password =
           typeof credentials?.password === "string"
             ? credentials.password
@@ -30,19 +25,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           return null;
         }
 
-        const [user] = await db
-          .select()
-          .from(users)
-          .where(eq(users.email, email))
-          .limit(1);
+        const user = await verifyCredentials(email, password);
 
         if (!user) {
-          return null;
-        }
-
-        const isValid = await compare(password, user.passwordHash);
-
-        if (!isValid) {
           return null;
         }
 

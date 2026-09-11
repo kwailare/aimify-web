@@ -1,18 +1,24 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { Check, Copy, X } from "lucide-react";
 import { resetUserPasswordAction } from "@/lib/actions/admin";
 import { formatDate } from "@/lib/format-date";
 import type { AdminUser } from "@/lib/admin";
 
+type ResetMode = "generate" | "manual";
+
 export function AdminUsersTable({ users }: { users: AdminUser[] }) {
   const [search, setSearch] = useState("");
-  const [pendingId, setPendingId] = useState<string | null>(null);
+  const [resetTarget, setResetTarget] = useState<AdminUser | null>(null);
+  const [mode, setMode] = useState<ResetMode>("generate");
+  const [isPending, setIsPending] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
   const [revealed, setRevealed] = useState<{
     email: string;
     password: string;
   } | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
   const query = search.trim().toLowerCase();
@@ -25,26 +31,54 @@ export function AdminUsersTable({ users }: { users: AdminUser[] }) {
       )
     : users;
 
-  const handleReset = async (user: AdminUser) => {
-    const confirmed = window.confirm(
-      `Reset the password for ${user.email}? They will need the new password to sign in.`,
-    );
+  const openResetPanel = (user: AdminUser) => {
+    setResetTarget(user);
+    setMode("generate");
+    setFormError(null);
+    setRevealed(null);
+    setSuccessMessage(null);
+  };
 
-    if (!confirmed) {
+  const closeResetPanel = () => {
+    setResetTarget(null);
+    setFormError(null);
+  };
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (!resetTarget) {
       return;
     }
 
-    setPendingId(user.id);
-    setRevealed(null);
+    setFormError(null);
 
-    const result = await resetUserPasswordAction(user.id);
+    const formData = new FormData(event.currentTarget);
+    const manualPassword =
+      mode === "manual" ? String(formData.get("password") ?? "") : undefined;
 
-    setPendingId(null);
+    if (mode === "manual" && (!manualPassword || manualPassword.length < 8)) {
+      setFormError("Password must be at least 8 characters.");
+      return;
+    }
+
+    setIsPending(true);
+    const result = await resetUserPasswordAction(resetTarget.id, manualPassword);
+    setIsPending(false);
+
+    if (result?.error) {
+      setFormError(result.error);
+      return;
+    }
 
     if (result?.temporaryPassword) {
-      setRevealed({ email: user.email, password: result.temporaryPassword });
+      setRevealed({ email: resetTarget.email, password: result.temporaryPassword });
       setCopied(false);
+    } else {
+      setSuccessMessage(`Password updated for ${resetTarget.email}.`);
     }
+
+    setResetTarget(null);
   };
 
   const handleCopy = async () => {
@@ -77,6 +111,80 @@ export function AdminUsersTable({ users }: { users: AdminUser[] }) {
         />
       </div>
 
+      {resetTarget && (
+        <form className="dash-reveal" onSubmit={handleSubmit}>
+          <div className="dash-reveal-head">
+            <p className="dash-reveal-label">
+              Reset password for {resetTarget.email}
+            </p>
+            <button
+              className="dash-reveal-dismiss"
+              type="button"
+              aria-label="Cancel"
+              onClick={closeResetPanel}
+            >
+              <X size={14} />
+            </button>
+          </div>
+
+          <div className="payment-method-row">
+            <label
+              className={`payment-method-option ${mode === "generate" ? "is-selected" : ""}`}
+            >
+              <input
+                type="radio"
+                name="reset-mode"
+                checked={mode === "generate"}
+                onChange={() => setMode("generate")}
+              />
+              Generate random password
+            </label>
+            <label
+              className={`payment-method-option ${mode === "manual" ? "is-selected" : ""}`}
+            >
+              <input
+                type="radio"
+                name="reset-mode"
+                checked={mode === "manual"}
+                onChange={() => setMode("manual")}
+              />
+              Set a specific password
+            </label>
+          </div>
+
+          {mode === "manual" && (
+            <div className="auth-field dash-reset-field">
+              <label className="auth-label" htmlFor="manual-password">
+                New password
+              </label>
+              <input
+                className="auth-input"
+                id="manual-password"
+                name="password"
+                type="text"
+                autoComplete="off"
+                placeholder="At least 8 characters"
+              />
+            </div>
+          )}
+
+          {formError && <p className="auth-error">{formError}</p>}
+
+          <div className="dash-reveal-row">
+            <button className="auth-submit dash-submit" type="submit" disabled={isPending}>
+              {isPending ? "Resetting…" : "Confirm reset"}
+            </button>
+            <button
+              className="dash-table-action"
+              type="button"
+              onClick={closeResetPanel}
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      )}
+
       {revealed && (
         <div className="dash-reveal">
           <div className="dash-reveal-head">
@@ -102,6 +210,22 @@ export function AdminUsersTable({ users }: { users: AdminUser[] }) {
             >
               {copied ? <Check size={14} /> : <Copy size={14} />}
               {copied ? "Copied" : "Copy"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {successMessage && (
+        <div className="dash-reveal">
+          <div className="dash-reveal-head">
+            <p className="dash-reveal-label">{successMessage}</p>
+            <button
+              className="dash-reveal-dismiss"
+              type="button"
+              aria-label="Dismiss"
+              onClick={() => setSuccessMessage(null)}
+            >
+              <X size={14} />
             </button>
           </div>
         </div>
@@ -144,12 +268,9 @@ export function AdminUsersTable({ users }: { users: AdminUser[] }) {
                       <button
                         className="dash-table-action is-danger"
                         type="button"
-                        onClick={() => handleReset(user)}
-                        disabled={pendingId === user.id}
+                        onClick={() => openResetPanel(user)}
                       >
-                        {pendingId === user.id
-                          ? "Resetting…"
-                          : "Reset password"}
+                        Reset password
                       </button>
                     </td>
                   </tr>

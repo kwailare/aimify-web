@@ -3437,6 +3437,14 @@ textarea.auth-input {
   margin-top: 0.75rem;
 }
 
+.dash-reveal .payment-method-row {
+  margin-top: 0.9rem;
+}
+
+.dash-reset-field {
+  margin-top: 0.9rem;
+}
+
 .dash-reveal-value {
   border: 1px solid rgb(216 139 0 / 30%);
   border-radius: 0.6rem;

@@ -92,7 +92,10 @@ export async function reactivateOrganizationAction(organizationId: string) {
   return { success: true };
 }
 
-export async function resetUserPasswordAction(userId: string) {
+export async function resetUserPasswordAction(
+  userId: string,
+  manualPassword?: string,
+) {
   const context = await getAdminContext();
 
   if (!context) {
@@ -109,20 +112,33 @@ export async function resetUserPasswordAction(userId: string) {
     return { error: "User not found." };
   }
 
-  const temporaryPassword = generateTempPassword();
-  const passwordHash = await hash(temporaryPassword, 10);
+  const isManual = Boolean(manualPassword);
+
+  if (isManual && manualPassword!.length < 8) {
+    return { error: "Password must be at least 8 characters." };
+  }
+
+  const passwordToSet = isManual ? manualPassword! : generateTempPassword();
+  const passwordHash = await hash(passwordToSet, 10);
 
   await db.update(users).set({ passwordHash }).where(eq(users.id, userId));
 
   // Deliberately never store or log the plaintext password -- only that a
-  // reset happened, by whom, and for whom.
+  // reset happened, by whom, for whom, and which method was used.
   await logAudit({
     userId: context.admin.id,
     module: "admin",
     action: "user.password_reset",
     recordId: userId,
-    newValue: { targetEmail: targetUser.email },
+    newValue: {
+      targetEmail: targetUser.email,
+      method: isManual ? "manual" : "generated",
+    },
   });
 
-  return { success: true, temporaryPassword };
+  // Only hand the password back to the client when it was generated --
+  // a manually-entered password is already known to whoever typed it.
+  return isManual
+    ? { success: true as const }
+    : { success: true as const, temporaryPassword: passwordToSet };
 }

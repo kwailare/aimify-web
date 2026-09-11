@@ -60,3 +60,24 @@ export async function getAllOrganizations() {
     .groupBy(organizations.id)
     .orderBy(desc(organizations.createdAt));
 }
+
+export type AdminUser = Awaited<ReturnType<typeof getAllUsers>>[number];
+
+export async function getAllUsers() {
+  return db
+    .select({
+      id: users.id,
+      name: users.name,
+      email: users.email,
+      phone: users.phone,
+      createdAt: users.createdAt,
+      role: memberships.role,
+      organizationName: organizations.name,
+      isAdmin: adminUsers.id,
+    })
+    .from(users)
+    .leftJoin(memberships, eq(memberships.userId, users.id))
+    .leftJoin(organizations, eq(memberships.organizationId, organizations.id))
+    .leftJoin(adminUsers, eq(adminUsers.userId, users.id))
+    .orderBy(desc(users.createdAt));
+}

@@ -12,6 +12,7 @@ import {
   Menu,
   Moon,
   Sun,
+  Users,
   X,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
@@ -21,6 +22,7 @@ import { toggleTheme, useIsDarkMode } from "@/components/theme-store";
 const navItems = [
   { href: "/admin", label: "Overview", icon: LayoutDashboard },
   { href: "/admin/organizations", label: "Organizations", icon: Building2 },
+  { href: "/admin/users", label: "Users", icon: Users },
   { href: "/admin/activity", label: "Activity", icon: History },
 ];
 

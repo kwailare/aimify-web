@@ -1,19 +1,5 @@
-import { getAllAuditLogs } from "@/lib/audit";
+import { describeAuditAction, getAllAuditLogs } from "@/lib/audit";
 import { formatDateTime } from "@/lib/format-date";
-
-const actionLabels: Record<string, string> = {
-  "user.signed_up": "Account created",
-  "user.signed_in": "Signed in",
-  "profile.updated": "Profile updated",
-  "organization.created": "Organization created",
-  "subscription.activated": "Subscription activated",
-  "organization.suspended": "Organization suspended",
-  "organization.reactivated": "Organization reactivated",
-};
-
-function describeAction(action: string) {
-  return actionLabels[action] ?? action;
-}
 
 export default async function AdminActivityPage() {
   const logs = await getAllAuditLogs();
@@ -48,7 +34,7 @@ export default async function AdminActivityPage() {
                     <td>{formatDateTime(log.createdAt)}</td>
                     <td>{log.actorName ?? "System"}</td>
                     <td>{log.organizationName ?? "—"}</td>
-                    <td>{describeAction(log.action)}</td>
+                    <td>{describeAuditAction(log.action)}</td>
                   </tr>
                 ))}
               </tbody>

@@ -2,6 +2,21 @@ import { desc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { auditLogs, organizations, users } from "@/db/schema";
 
+const actionLabels: Record<string, string> = {
+  "user.signed_up": "Account created",
+  "user.signed_in": "Signed in",
+  "user.password_reset": "Password reset",
+  "profile.updated": "Profile updated",
+  "organization.created": "Organization created",
+  "subscription.activated": "Subscription activated",
+  "organization.suspended": "Organization suspended",
+  "organization.reactivated": "Organization reactivated",
+};
+
+export function describeAuditAction(action: string) {
+  return actionLabels[action] ?? action;
+}
+
 export async function logAudit(entry: {
   organizationId?: string | null;
   userId?: string | null;

@@ -338,15 +338,19 @@ body::-webkit-scrollbar {
   backdrop-filter: blur(28px) saturate(115%);
   -webkit-backdrop-filter: blur(28px) saturate(115%);
   transition:
-    transform 120ms ease,
-    border-color 120ms ease,
-    box-shadow 120ms ease;
+    transform 220ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    border-color 180ms ease,
+    box-shadow 180ms ease;
 }
 
 .feature-card:hover {
   border-color: rgb(216 139 0 / 48%);
   box-shadow: 0 16px 34px rgb(216 139 0 / 22%);
-  transform: translateY(-4px);
+  transform: translateY(-4px) scale(1.015);
+}
+
+.feature-card:active {
+  transform: translateY(-1px) scale(0.985);
 }
 
 .feature-icon {
@@ -424,17 +428,21 @@ body::-webkit-scrollbar {
   -webkit-backdrop-filter: blur(28px) saturate(115%);
   padding: 1.25rem;
   transition:
-    background-color 120ms ease,
-    border-color 120ms ease,
-    box-shadow 120ms ease,
-    transform 120ms ease;
+    background-color 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    transform 220ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .works-step:hover {
   border-color: rgb(216 139 0 / 30%);
   background: rgb(255 255 255 / 90%);
   box-shadow: 0 18px 38px rgb(216 139 0 / 16%);
-  transform: translateY(-3px);
+  transform: translateY(-3px) scale(1.015);
+}
+
+.works-step:active {
+  transform: translateY(-1px) scale(0.985);
 }
 
 .works-step:hover .works-icon {
@@ -523,15 +531,20 @@ body::-webkit-scrollbar {
   backdrop-filter: blur(28px) saturate(115%);
   -webkit-backdrop-filter: blur(28px) saturate(115%);
   transition:
-    transform 120ms ease,
-    border-color 120ms ease,
-    box-shadow 120ms ease;
+    transform 220ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    border-color 180ms ease,
+    box-shadow 180ms ease;
 }
 
-.pricing-card:hover {
+.pricing-card:hover,
+.pricing-card:focus-within {
   border-color: rgb(216 139 0 / 48%);
   box-shadow: 0 18px 38px rgb(216 139 0 / 14%);
-  transform: translateY(-4px);
+  transform: translateY(-4px) scale(1.015);
+}
+
+.pricing-card:active {
+  transform: translateY(-1px) scale(0.985);
 }
 
 .pricing-card.is-featured {
@@ -1762,7 +1775,8 @@ body::-webkit-scrollbar {
 
 .dark .feature-card:hover,
 .dark .works-step:hover,
-.dark .pricing-card:hover {
+.dark .pricing-card:hover,
+.dark .pricing-card:focus-within {
   border-color: rgb(242 178 51 / 62%);
   background: rgb(52 52 52 / 96%);
   box-shadow: 0 18px 38px rgb(242 178 51 / 14%);

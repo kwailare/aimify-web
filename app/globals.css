@@ -2585,6 +2585,19 @@ textarea.auth-input {
   background: rgb(242 178 51 / 12%);
 }
 
+.download-option.is-coming-soon {
+  cursor: not-allowed;
+  opacity: 0.55;
+  filter: grayscale(0.4);
+}
+
+.download-option.is-coming-soon:hover,
+.download-option.is-coming-soon:focus-visible {
+  border-color: rgb(36 36 36 / 14%);
+  box-shadow: none;
+  transform: none;
+}
+
 .download-option-text {
   display: grid;
   gap: 0.15rem;
@@ -2610,6 +2623,10 @@ textarea.auth-input {
   color: white;
   font-size: 0.62rem;
   font-weight: 800;
+}
+
+.download-badge-soon {
+  background: var(--aimify-muted);
 }
 
 .download-card-note {
@@ -3123,6 +3140,11 @@ textarea.auth-input {
 .dark .download-option {
   border-color: rgb(255 255 255 / 16%);
   background: rgb(255 255 255 / 6%);
+}
+
+.dark .download-option.is-coming-soon:hover,
+.dark .download-option.is-coming-soon:focus-visible {
+  border-color: rgb(255 255 255 / 16%);
 }
 
 .dark .dash-sidebar {

@@ -244,8 +244,13 @@ body::-webkit-scrollbar {
   font-weight: 400;
   line-height: 1;
   color: var(--aimify-gold-vivid);
+  /* Thin outline in the theme-adaptive ink color so "fy" keeps clear
+     definition against both light and dark backgrounds, matching the
+     stroke treatment on the exported wordmark PNGs. */
+  -webkit-text-stroke: 1px var(--aimify-ink);
   transition:
     color 120ms ease,
+    -webkit-text-stroke-color 120ms ease,
     transform 140ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 

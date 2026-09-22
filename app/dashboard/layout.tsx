@@ -3,6 +3,11 @@ import type { ReactNode } from "react";
 import { getOrgContext } from "@/lib/org";
 import { DashboardShell } from "@/components/dashboard-shell";
 
+// Same reasoning as app/admin/layout.tsx: this subtree is entirely
+// session-backed and must always render at request time, never as a
+// build-time static export.
+export const dynamic = "force-dynamic";
+
 export default async function DashboardLayout({
   children,
 }: {

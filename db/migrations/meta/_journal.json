@@ -29,6 +29,13 @@
       "when": 1789084075235,
       "tag": "0003_mushy_shockwave",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1790104595447,
+      "tag": "0004_handy_strong_guy",
+      "breakpoints": true
     }
   ]
 }

@@ -1,4 +1,13 @@
-import { pgTable, uuid, text, timestamp, jsonb } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  uuid,
+  text,
+  timestamp,
+  jsonb,
+  integer,
+  numeric,
+  unique,
+} from "drizzle-orm/pg-core";
 
 export const organizations = pgTable("organizations", {
   id: uuid().primaryKey().defaultRandom(),
@@ -50,5 +59,62 @@ export const auditLogs = pgTable("audit_logs", {
   recordId: text(),
   previousValue: jsonb(),
   newValue: jsonb(),
+  createdAt: timestamp().defaultNow().notNull(),
+});
+
+export const warehouses = pgTable("warehouses", {
+  id: uuid().primaryKey().defaultRandom(),
+  organizationId: uuid()
+    .notNull()
+    .references(() => organizations.id),
+  name: text().notNull(),
+  address: text(),
+  managerName: text(),
+  phone: text(),
+  status: text().notNull().default("active"),
+  createdAt: timestamp().defaultNow().notNull(),
+});
+
+export const products = pgTable(
+  "products",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    organizationId: uuid()
+      .notNull()
+      .references(() => organizations.id),
+    sku: text().notNull(),
+    barcode: text(),
+    name: text().notNull(),
+    description: text(),
+    category: text(),
+    unit: text().notNull().default("piece"),
+    purchasePrice: numeric({ mode: "number" }).notNull().default(0),
+    sellingPrice: numeric({ mode: "number" }).notNull().default(0),
+    minStock: integer().notNull().default(0),
+    currentStock: integer().notNull().default(0),
+    status: text().notNull().default("active"),
+    createdAt: timestamp().defaultNow().notNull(),
+    updatedAt: timestamp().defaultNow().notNull(),
+  },
+  (table) => [unique().on(table.organizationId, table.sku)],
+);
+
+export const stockMovements = pgTable("stock_movements", {
+  id: uuid().primaryKey().defaultRandom(),
+  organizationId: uuid()
+    .notNull()
+    .references(() => organizations.id),
+  warehouseId: uuid()
+    .notNull()
+    .references(() => warehouses.id),
+  productId: uuid()
+    .notNull()
+    .references(() => products.id),
+  userId: uuid().references(() => users.id),
+  type: text().notNull(),
+  quantity: integer().notNull(),
+  reason: text(),
+  previousStock: integer().notNull(),
+  newStock: integer().notNull(),
   createdAt: timestamp().defaultNow().notNull(),
 });

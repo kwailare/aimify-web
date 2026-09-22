@@ -3,7 +3,7 @@
 import { eq } from "drizzle-orm";
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { memberships, organizations, users } from "@/db/schema";
+import { memberships, organizations, users, warehouses } from "@/db/schema";
 import { logAudit } from "@/lib/audit";
 
 export async function completeProfileAction(formData: FormData) {
@@ -67,6 +67,16 @@ export async function completeOrganizationAction(formData: FormData) {
     organizationId: org.id,
     role,
   });
+
+  // The org's warehouseName field is a display-only convenience carried
+  // over from before warehouses were a real entity. A proper warehouses
+  // row is what inventory/stock-movement records actually reference.
+  if (warehouseName) {
+    await db.insert(warehouses).values({
+      organizationId: org.id,
+      name: warehouseName,
+    });
+  }
 
   await logAudit({
     organizationId: org.id,

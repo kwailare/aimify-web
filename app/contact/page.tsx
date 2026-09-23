@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { ArrowUpRight, Clock, Mail, MessageCircle } from "lucide-react";
+import { Clock, Mail, MessageCircle } from "lucide-react";
+import { ContactForm } from "@/components/contact-form";
 import { MarketingShell } from "@/components/marketing-shell";
 
 export const metadata: Metadata = {
@@ -56,70 +57,7 @@ export default function ContactPage() {
             </div>
           </div>
 
-          <form className="contact-form" action="#">
-            <div className="auth-form">
-              <div className="auth-field-row">
-                <div className="auth-field">
-                  <label className="auth-label" htmlFor="contact-name">
-                    Full name
-                  </label>
-                  <input
-                    className="auth-input"
-                    id="contact-name"
-                    name="name"
-                    type="text"
-                    autoComplete="name"
-                    placeholder="Ada Obi"
-                    required
-                  />
-                </div>
-                <div className="auth-field">
-                  <label className="auth-label" htmlFor="contact-email">
-                    Work email
-                  </label>
-                  <input
-                    className="auth-input"
-                    id="contact-email"
-                    name="email"
-                    type="email"
-                    autoComplete="email"
-                    placeholder="you@company.com"
-                    required
-                  />
-                </div>
-              </div>
-              <div className="auth-field">
-                <label className="auth-label" htmlFor="contact-subject">
-                  Subject
-                </label>
-                <input
-                  className="auth-input"
-                  id="contact-subject"
-                  name="subject"
-                  type="text"
-                  placeholder="What's this about?"
-                  required
-                />
-              </div>
-              <div className="auth-field">
-                <label className="auth-label" htmlFor="contact-message">
-                  Message
-                </label>
-                <textarea
-                  className="auth-input"
-                  id="contact-message"
-                  name="message"
-                  rows={5}
-                  placeholder="Tell us a bit about your business and what you need."
-                  required
-                />
-              </div>
-              <button className="auth-submit" type="submit">
-                Send message
-                <ArrowUpRight size={16} aria-hidden="true" />
-              </button>
-            </div>
-          </form>
+          <ContactForm />
         </div>
       </section>
     </MarketingShell>

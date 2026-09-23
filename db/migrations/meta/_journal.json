@@ -36,6 +36,13 @@
       "when": 1790104595447,
       "tag": "0004_handy_strong_guy",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1790136234493,
+      "tag": "0005_daily_kinsey_walden",
+      "breakpoints": true
     }
   ]
 }

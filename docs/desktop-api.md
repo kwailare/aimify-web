@@ -56,6 +56,17 @@ Failure — `400` (missing fields) or `401` (wrong email/password):
 }
 ```
 
+Failure — `429` (rate limited): after 5 failed attempts within 15 minutes
+from the same IP, or 5 failed attempts against the same email, further
+attempts are rejected without even checking the password, until the window
+passes.
+
+```json
+{
+  "error": "Too many failed attempts. Please try again in a few minutes."
+}
+```
+
 ## `GET /api/v1/me`
 
 Header required: `Authorization: Bearer <token>`

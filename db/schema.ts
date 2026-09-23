@@ -7,6 +7,8 @@ import {
   integer,
   numeric,
   unique,
+  boolean,
+  index,
 } from "drizzle-orm/pg-core";
 
 export const organizations = pgTable("organizations", {
@@ -118,3 +120,17 @@ export const stockMovements = pgTable("stock_movements", {
   newStock: integer().notNull(),
   createdAt: timestamp().defaultNow().notNull(),
 });
+
+export const loginAttempts = pgTable(
+  "login_attempts",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    identifier: text().notNull(),
+    success: boolean().notNull(),
+    createdAt: timestamp().defaultNow().notNull(),
+  },
+  (table) => [index("login_attempts_identifier_created_at_idx").on(
+    table.identifier,
+    table.createdAt,
+  )],
+);

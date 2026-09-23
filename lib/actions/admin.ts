@@ -123,8 +123,6 @@ export async function resetUserPasswordAction(
 
   await db.update(users).set({ passwordHash }).where(eq(users.id, userId));
 
-  // Deliberately never store or log the plaintext password -- only that a
-  // reset happened, by whom, for whom, and which method was used.
   await logAudit({
     userId: context.admin.id,
     module: "admin",
@@ -136,8 +134,6 @@ export async function resetUserPasswordAction(
     },
   });
 
-  // Only hand the password back to the client when it was generated --
-  // a manually-entered password is already known to whoever typed it.
   return isManual
     ? { success: true as const }
     : { success: true as const, temporaryPassword: passwordToSet };

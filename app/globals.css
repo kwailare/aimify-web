@@ -244,11 +244,6 @@ body::-webkit-scrollbar {
   font-weight: 400;
   line-height: 1;
   color: var(--aimify-gold-vivid);
-  /* Thin, blurred outline in the theme-adaptive ink color so "fy" keeps
-     soft definition against both light and dark backgrounds, matching
-     the blurred stroke treatment on the exported wordmark PNGs.
-     text-shadow (not -webkit-text-stroke, which can't blur) stacked
-     twice for a touch more presence without turning into a hard ring. */
   text-shadow:
     0 0 2px var(--aimify-ink),
     0 0 2px var(--aimify-ink);

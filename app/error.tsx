@@ -12,8 +12,6 @@ export default function GlobalError({
   reset: () => void;
 }) {
   useEffect(() => {
-    // Client-side only, so this at least lands in the browser console with
-    // whatever digest Next.js attached, until real error reporting exists.
     console.error(error);
   }, [error]);
 

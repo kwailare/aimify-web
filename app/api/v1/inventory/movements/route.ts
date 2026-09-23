@@ -65,16 +65,6 @@ export async function POST(request: Request) {
     );
   }
 
-  // The stock change itself is one atomic arithmetic UPDATE -- Postgres
-  // row-locks during the read-modify-write, so two concurrent movements on
-  // the same product can never silently overwrite each other's effect. The
-  // movement record below is a separate, second write rather than wrapped
-  // in a real transaction with the update: the neon-http driver used here
-  // has no interactive transaction support (db.transaction() throws), only
-  // a fixed-statement batch mode that can't depend on the update's own
-  // result. Race-safety on the stock number itself matters more than
-  // closing the narrow "update succeeded, insert failed" gap, so that's the
-  // tradeoff made here.
   const [updated] = await db
     .update(products)
     .set({

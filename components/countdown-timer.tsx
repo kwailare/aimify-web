@@ -27,11 +27,6 @@ function getTimeLeft(targetMs: number): TimeLeft | null {
 export function CountdownTimer({ targetIso }: { targetIso: string }) {
   const targetMs = new Date(targetIso).getTime();
 
-  // Stays null through the server render and the first client render so
-  // they match exactly -- "now" differs between when the server renders
-  // this page and when the browser hydrates it, so computing real numbers
-  // at either of those two moments (instead of only after mount, via this
-  // effect) would produce a hydration mismatch.
   const [timeLeft, setTimeLeft] = useState<TimeLeft | "launched" | null>(null);
 
   useEffect(() => {

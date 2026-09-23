@@ -68,9 +68,6 @@ export async function completeOrganizationAction(formData: FormData) {
     role,
   });
 
-  // The org's warehouseName field is a display-only convenience carried
-  // over from before warehouses were a real entity. A proper warehouses
-  // row is what inventory/stock-movement records actually reference.
   if (warehouseName) {
     await db.insert(warehouses).values({
       organizationId: org.id,

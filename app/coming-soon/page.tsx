@@ -7,8 +7,6 @@ export const metadata: Metadata = {
     "Aimify is almost here. Inventory management built for real warehouses.",
 };
 
-// Set in .env.local / Vercel as NEXT_PUBLIC_LAUNCH_AT (ISO date-time, e.g.
-// "2026-10-15T09:00:00Z"). Public because the countdown runs in the browser.
 const LAUNCH_AT = process.env.NEXT_PUBLIC_LAUNCH_AT;
 
 export default function ComingSoonPage() {

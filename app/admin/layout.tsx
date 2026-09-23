@@ -4,12 +4,6 @@ import { auth } from "@/auth";
 import { getAdminContext } from "@/lib/admin";
 import { AdminShell } from "@/components/admin-shell";
 
-// This whole subtree is session- and database-backed (admin/page.tsx and
-// friends query the DB independently of this layout's own auth check), so
-// it must never be attempted as a static build-time export -- that's what
-// crashed the build against a fresh, unmigrated database (relation does
-// not exist). force-dynamic applies across the whole route, not just this
-// segment, so every /admin/* page inherits it from here.
 export const dynamic = "force-dynamic";
 
 export default async function AdminLayout({

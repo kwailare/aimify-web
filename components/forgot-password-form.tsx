@@ -36,7 +36,7 @@ export function ForgotPasswordForm() {
         <p>
           If an account exists for that email, our team has been notified
           and will reach out within one business day. You can also email{" "}
-          <a href="mailto:aimifygroup@gmail.com">aimifygroup@gmail.com</a>{" "}
+          <a href="mailto:support@aimify.app">support@aimify.app</a>{" "}
           directly.
         </p>
       </div>

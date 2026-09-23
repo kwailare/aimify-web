@@ -14,7 +14,7 @@ export function DownloadCard({ compact = false }: { compact?: boolean }) {
       <p className="download-card-note">
         Your license activates automatically when you sign in with your
         Aimify account on first launch. Need help installing?{" "}
-        <a href="mailto:aimifygroup@gmail.com">Contact support</a>.
+        <a href="mailto:support@aimify.app">Contact support</a>.
       </p>
     </div>
   );

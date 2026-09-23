@@ -101,7 +101,7 @@ export default function PrivacyPage() {
             <h2>7. Contact</h2>
             <p>
               Questions about this policy or your data can be sent to{" "}
-              <a href="mailto:aimifygroup@gmail.com">aimifygroup@gmail.com</a>.
+              <a href="mailto:info@aimify.app">info@aimify.app</a>.
             </p>
           </div>
         </div>

@@ -35,9 +35,9 @@ export function Footer() {
             One secure, auditable platform for inventory, sales, purchases
             and credit — built for wholesalers, distributors and retailers.
           </p>
-          <a className="footer-email" href="mailto:aimifygroup@gmail.com">
+          <a className="footer-email" href="mailto:info@aimify.app">
             <Mail size={15} aria-hidden="true" />
-            aimifygroup@gmail.com
+            info@aimify.app
           </a>
         </div>
         <div className="footer-links-group">

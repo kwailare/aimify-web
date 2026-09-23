@@ -34,7 +34,7 @@ export default function ComingSoonPage() {
             <p className="coming-soon-subtitle">Launch date coming soon.</p>
           )}
 
-          <a className="hero-secondary coming-soon-contact" href="mailto:aimifygroup@gmail.com">
+          <a className="hero-secondary coming-soon-contact" href="mailto:info@aimify.app">
             Get in touch
           </a>
         </section>

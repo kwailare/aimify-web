@@ -35,7 +35,7 @@ export default function GlobalError({
             <button className="hero-primary" type="button" onClick={reset}>
               Try again
             </button>
-            <a className="hero-secondary" href="mailto:aimifygroup@gmail.com">
+            <a className="hero-secondary" href="mailto:support@aimify.app">
               Contact support
             </a>
           </div>

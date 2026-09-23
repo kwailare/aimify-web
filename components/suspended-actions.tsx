@@ -12,7 +12,7 @@ export function SuspendedActions() {
       >
         Sign out
       </button>
-      <a className="hero-secondary" href="mailto:aimifygroup@gmail.com">
+      <a className="hero-secondary" href="mailto:support@aimify.app">
         Contact support
       </a>
     </div>

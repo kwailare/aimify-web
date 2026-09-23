@@ -62,6 +62,40 @@ export async function signUpAction(formData: FormData) {
   return { success: true };
 }
 
+export async function requestPasswordResetAction(formData: FormData) {
+  const email = String(formData.get("email") ?? "")
+    .trim()
+    .toLowerCase();
+
+  if (!email) {
+    return { error: "Enter your email address." };
+  }
+
+  const [user] = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(eq(users.email, email))
+    .limit(1);
+
+  // There's no automated reset-by-email flow yet (no email provider is
+  // wired up), so this logs a request an admin can see and act on in
+  // /admin/activity via the existing manual reset tool, instead of
+  // pretending to send a link that doesn't exist. Only log when the
+  // account is real, but return the same success response either way --
+  // otherwise this form becomes a way to check which emails have
+  // accounts.
+  if (user) {
+    await logAudit({
+      userId: user.id,
+      module: "auth",
+      action: "auth.password_reset_requested",
+      recordId: user.id,
+    });
+  }
+
+  return { success: true };
+}
+
 export async function signInAction(formData: FormData) {
   const email = String(formData.get("email") ?? "")
     .trim()

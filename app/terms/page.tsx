@@ -116,7 +116,7 @@ export default function TermsPage() {
             <h2>9. Contact</h2>
             <p>
               Questions about these terms can be sent to{" "}
-              <a href="mailto:hello@aimify.com">hello@aimify.com</a>.
+              <a href="mailto:aimifygroup@gmail.com">aimifygroup@gmail.com</a>.
             </p>
           </div>
         </div>

@@ -41,6 +41,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://www.aimify.app"),
   title: "Aimify | Multi-tenant inventory & warehouse management",
   description:
     "Aimify replaces notebooks and spreadsheets with one secure, auditable platform for inventory, sales, purchases, credit and suppliers — built for wholesalers, distributors and retailers.",

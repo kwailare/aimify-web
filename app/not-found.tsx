@@ -32,7 +32,7 @@ export default function NotFound() {
             <Link className="hero-primary" href="/">
               Back to home
             </Link>
-            <a className="hero-secondary" href="mailto:hello@aimify.com">
+            <a className="hero-secondary" href="mailto:aimifygroup@gmail.com">
               Contact support
             </a>
           </div>

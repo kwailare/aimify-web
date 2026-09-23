@@ -6,6 +6,7 @@ const actionLabels: Record<string, string> = {
   "user.signed_up": "Account created",
   "user.signed_in": "Signed in",
   "user.password_reset": "Password reset",
+  "auth.password_reset_requested": "Requested a password reset",
   "profile.updated": "Profile updated",
   "organization.created": "Organization created",
   "subscription.activated": "Subscription activated",

@@ -33,7 +33,7 @@ export default function ContactPage() {
               </span>
               <div>
                 <h3>Email</h3>
-                <a href="mailto:hello@aimify.com">hello@aimify.com</a>
+                <a href="mailto:aimifygroup@gmail.com">aimifygroup@gmail.com</a>
               </div>
             </div>
             <div className="contact-info-item">

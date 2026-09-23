@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { PackageX } from "lucide-react";
+import { SearchX } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Page not found | Aimify",
@@ -20,13 +20,13 @@ export default function NotFound() {
         </Link>
         <section className="not-found-card">
           <span className="not-found-icon" aria-hidden="true">
-            <PackageX size={26} strokeWidth={1.8} />
+            <SearchX size={26} strokeWidth={1.8} />
           </span>
           <p className="not-found-code">404</p>
-          <h1 className="not-found-title">This page is out of stock.</h1>
+          <h1 className="not-found-title">Page not found</h1>
           <p className="not-found-subtitle">
-            We couldn&apos;t find the page you were looking for. It may have
-            been moved, renamed, or never existed in this warehouse.
+            The page you&apos;re looking for doesn&apos;t exist, may have been
+            moved, or the link may be incorrect.
           </p>
           <div className="not-found-actions">
             <Link className="hero-primary" href="/">

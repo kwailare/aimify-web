@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { useDashboardContext } from "@/components/dashboard-context";
+import { LogoUploader } from "@/components/logo-uploader";
 import { updateOrganizationAction } from "@/lib/actions/organization";
 import {
   CURRENCIES,
@@ -50,6 +51,11 @@ export default function DashboardOrganizationPage() {
           for full tenant isolation.
         </p>
       </div>
+
+      <LogoUploader
+        logoUrl={organization.logoUrl}
+        organizationName={organization.name}
+      />
 
       <form className="dash-card dash-form" onSubmit={handleSubmit}>
         <p className="dash-card-label">Company</p>

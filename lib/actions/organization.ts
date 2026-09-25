@@ -5,6 +5,8 @@ import { auth } from "@/auth";
 import { db } from "@/db";
 import { memberships, organizations, warehouses } from "@/db/schema";
 import { logAudit } from "@/lib/audit";
+import { deleteOwnedBlob, isBlobConfigured, uploadImage } from "@/lib/blob";
+import { readImageFile } from "@/lib/images";
 import {
   CURRENCIES,
   DATE_FORMATS,
@@ -213,6 +215,102 @@ export async function cancelSubscriptionAction() {
     recordId: membership.organizationId,
     previousValue: before,
     newValue: { subscriptionStatus: "cancelled" },
+  });
+
+  return { success: true };
+}
+
+export async function uploadLogoAction(formData: FormData) {
+  const membership = await getSessionMembership();
+
+  if (!membership) {
+    return { error: "You need to sign in and create an organization first." };
+  }
+
+  if (!isBlobConfigured()) {
+    return { error: "Logo uploads aren't available right now." };
+  }
+
+  const image = await readImageFile(formData.get("logo"));
+
+  if (!image.ok) {
+    return { error: image.error };
+  }
+
+  const folder = `logos/${membership.organizationId}/`;
+
+  const [before] = await db
+    .select({ logoUrl: organizations.logoUrl })
+    .from(organizations)
+    .where(eq(organizations.id, membership.organizationId))
+    .limit(1);
+
+  let logoUrl: string;
+
+  try {
+    logoUrl = await uploadImage(`${folder}logo`, image);
+  } catch (error) {
+    console.error("Logo upload failed:", error);
+    return { error: "The upload failed. Please try again." };
+  }
+
+  try {
+    await db
+      .update(organizations)
+      .set({ logoUrl })
+      .where(eq(organizations.id, membership.organizationId));
+  } catch (error) {
+    await deleteOwnedBlob(logoUrl, folder);
+    throw error;
+  }
+
+  await deleteOwnedBlob(before?.logoUrl, folder);
+
+  await logAudit({
+    organizationId: membership.organizationId,
+    userId: membership.userId,
+    module: "organization",
+    action: "organization.logo_updated",
+    recordId: membership.organizationId,
+    previousValue: { logoUrl: before?.logoUrl ?? null },
+    newValue: { logoUrl },
+  });
+
+  return { success: true, logoUrl };
+}
+
+export async function removeLogoAction() {
+  const membership = await getSessionMembership();
+
+  if (!membership) {
+    return { error: "You need to sign in and create an organization first." };
+  }
+
+  const [before] = await db
+    .select({ logoUrl: organizations.logoUrl })
+    .from(organizations)
+    .where(eq(organizations.id, membership.organizationId))
+    .limit(1);
+
+  if (!before?.logoUrl) {
+    return { success: true };
+  }
+
+  await db
+    .update(organizations)
+    .set({ logoUrl: null })
+    .where(eq(organizations.id, membership.organizationId));
+
+  await deleteOwnedBlob(before.logoUrl, `logos/${membership.organizationId}/`);
+
+  await logAudit({
+    organizationId: membership.organizationId,
+    userId: membership.userId,
+    module: "organization",
+    action: "organization.logo_removed",
+    recordId: membership.organizationId,
+    previousValue: { logoUrl: before.logoUrl },
+    newValue: { logoUrl: null },
   });
 
   return { success: true };

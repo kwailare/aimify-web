@@ -115,6 +115,7 @@ Success — `200`:
     "industry": "Wholesale",
     "currency": "NGN",
     "warehouseName": "Main warehouse — Lagos",
+    "logoUrl": "https://abc123.public.blob.vercel-storage.com/logos/uuid/logo-x1y2z3.png",
     "registrationNumber": "RC 1234567",
     "address": "12 Marina Road, Lagos",
     "phone": "+2348000000000",
@@ -129,6 +130,10 @@ Success — `200`:
   "role": "Owner"
 }
 ```
+
+`logoUrl` is a public image URL, or `null` if the owner hasn't uploaded a
+logo on the website. It can be shown directly (for example in the app header
+or on printed receipts).
 
 `subscriptionStatus` is one of `pending`, `trial`, `active`, `past_due`,
 `expired`, `cancelled` or `suspended`. The company fields (`address`,
@@ -251,6 +256,7 @@ Only `sku` and `name` are required; `unit` defaults to `"piece"`, prices and
     "name": "Bag of Rice (50kg)",
     "description": null,
     "brand": "Mama Gold",
+    "imageUrl": null,
     "category": "Grains",
     "unit": "bag",
     "purchasePrice": 30000,
@@ -289,6 +295,36 @@ Same validation as create. `status` is `active`, `inactive` or `archived`.
 Archives the product (`status: "archived"`) rather than deleting it, because
 its stock movement history has to stay intact. It disappears from the default
 product list; its SKU stays reserved. Returns the archived product.
+
+### `POST /api/v1/products/{id}/image`
+
+Uploads (or replaces) the product's picture. Send `multipart/form-data` with
+one file in a field named **`image`**:
+
+```
+curl -X POST https://<host>/api/v1/products/<id>/image \
+  -H "Authorization: Bearer <token>" \
+  -F "image=@rice.png"
+```
+
+- PNG, JPEG or WebP only, **2 MB or smaller**. The file type is decided from
+  the file's actual contents, not its name or the `Content-Type` you send, so a
+  renamed file is rejected. SVG and GIF are not accepted.
+- `200` with `{ "product": { ... } }`; `product.imageUrl` is now a public URL.
+  Uploading again replaces the picture and the old file is deleted.
+- Failures: `400` (no file in `image`, wrong type, empty file, over 2 MB),
+  `413` (body clearly too large), `404` (unknown product, or another
+  organization's), `401`, `402`/`403` (subscription), `502` (the storage
+  service failed; nothing changed), `503` with `"code": "storage_unavailable"`
+  (image storage isn't configured on the server).
+
+`imageUrl` can only be set through this endpoint. It is ignored on product
+create and rejected on `PATCH`.
+
+### `DELETE /api/v1/products/{id}/image`
+
+Removes the picture and deletes the stored file. Returns `{ "product": { ... } }`
+with `imageUrl: null`; it's a harmless `200` if there was no image.
 
 ## Categories and units
 
@@ -388,9 +424,8 @@ The current picture for active products:
 
 - **No customers, suppliers, purchases, sales or expenses.** Products and
   stock movements are the first slice; everything else builds on them.
-- **No product images and no supplier link on products.** Images need file
-  storage, and the supplier link needs a suppliers table; neither exists in
-  `aimify-web` yet.
+- **No supplier link on products.** It needs a suppliers table, which doesn't
+  exist in `aimify-web` yet.
 - **No per-warehouse stock balances.** `currentStock` is organization-wide on
   the product; movements record which warehouse they happened in, but stock
   isn't split by warehouse. This has to change before multiple warehouses are
@@ -412,6 +447,8 @@ All of this is implemented in the `aimify-web` repo:
   `guardApi`, which adds the subscription check every gated route uses
 - `lib/subscription.ts` — statuses, which ones unlock the desktop app, and the
   user-facing messages
+- `lib/images.ts`, `lib/blob.ts` — image validation (by file contents) and
+  storage in Vercel Blob for company logos and product images
 - `lib/product-input.ts`, `lib/warehouse-input.ts`, `lib/catalog.ts`,
   `lib/catalog-routes.ts`, `lib/stock-alerts.ts`, `lib/plan-limits.ts` —
   validation and rules behind the endpoints above

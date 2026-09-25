@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, type ReactNode } from "react";
@@ -101,6 +102,16 @@ export function DashboardShell({
             })}
           </nav>
           <div className="dash-sidebar-footer">
+            {organization.logoUrl && (
+              <Image
+                className="dash-org-logo"
+                src={organization.logoUrl}
+                alt={`${organization.name} logo`}
+                width={64}
+                height={64}
+                unoptimized
+              />
+            )}
             <p className="dash-org-name">{organization.name}</p>
             <p className="dash-org-plan">
               Full Access · {describeSubscriptionStatus(organization.subscriptionStatus)}

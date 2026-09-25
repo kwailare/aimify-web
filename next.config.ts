@@ -17,7 +17,7 @@ const cspHeader = `
   default-src 'self';
   script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""};
   style-src 'self' 'unsafe-inline';
-  img-src 'self' blob: data:;
+  img-src 'self' blob: data: https://*.public.blob.vercel-storage.com;
   font-src 'self';
   connect-src 'self';
   object-src 'none';
@@ -28,6 +28,19 @@ const cspHeader = `
 `;
 
 const nextConfig: NextConfig = {
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "*.public.blob.vercel-storage.com",
+      },
+    ],
+  },
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "3mb",
+    },
+  },
   async headers() {
     return [
       {

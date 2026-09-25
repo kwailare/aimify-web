@@ -29,6 +29,7 @@ export async function GET(request: Request) {
           industry: context.membership.organization.industry,
           currency: context.membership.organization.currency,
           warehouseName: context.membership.organization.warehouseName,
+          logoUrl: context.membership.organization.logoUrl,
           registrationNumber: context.membership.organization.registrationNumber,
           address: context.membership.organization.address,
           phone: context.membership.organization.phone,

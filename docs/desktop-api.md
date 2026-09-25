@@ -107,7 +107,8 @@ Success — `200`:
     "id": "uuid",
     "name": "Ada Obi",
     "email": "ada@company.com",
-    "phone": "+2348000000000"
+    "phone": "+2348000000000",
+    "emailVerified": true
   },
   "organization": {
     "id": "uuid",
@@ -130,6 +131,13 @@ Success — `200`:
   "role": "Owner"
 }
 ```
+
+`user.emailVerified` is `false` until the person confirms the link emailed to
+them at sign-up. Someone with an unconfirmed email can't create an
+organization on the website, so for them `organization` is `null` and the
+desktop app should ask them to check their inbox and finish on the website.
+Accounts that existed before email confirmation was introduced are treated as
+confirmed.
 
 `logoUrl` is a public image URL, or `null` if the owner hasn't uploaded a
 logo on the website. It can be shown directly (for example in the app header

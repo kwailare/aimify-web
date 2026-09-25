@@ -21,6 +21,7 @@ export async function GET(request: Request) {
       name: context.user.name,
       email: context.user.email,
       phone: context.user.phone,
+      emailVerified: Boolean(context.user.emailVerifiedAt),
     },
     organization: context.membership
       ? {

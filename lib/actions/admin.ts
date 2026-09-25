@@ -1,7 +1,7 @@
 "use server";
 
 import { randomBytes } from "crypto";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { hash } from "bcryptjs";
 import { db } from "@/db";
 import { organizations, users } from "@/db/schema";
@@ -144,4 +144,32 @@ export async function resetUserPasswordAction(
   return isManual
     ? { success: true as const }
     : { success: true as const, temporaryPassword: passwordToSet };
+}
+
+export async function verifyUserEmailAction(userId: string) {
+  const context = await getAdminContext();
+
+  if (!context) {
+    return { error: "Not authorized." };
+  }
+
+  const [updated] = await db
+    .update(users)
+    .set({ emailVerifiedAt: new Date() })
+    .where(and(eq(users.id, userId), isNull(users.emailVerifiedAt)))
+    .returning({ id: users.id, email: users.email });
+
+  if (!updated) {
+    return { error: "That user doesn't exist or is already verified." };
+  }
+
+  await logAudit({
+    userId: context.admin.id,
+    module: "admin",
+    action: "admin.email_verified",
+    recordId: userId,
+    newValue: { targetEmail: updated.email },
+  });
+
+  return { success: true };
 }

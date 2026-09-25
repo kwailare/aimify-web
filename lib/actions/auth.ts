@@ -7,9 +7,13 @@ import { hash } from "bcryptjs";
 import { AuthError } from "next-auth";
 import { db } from "@/db";
 import { users } from "@/db/schema";
-import { signIn } from "@/auth";
+import { auth, signIn } from "@/auth";
 import { logAudit } from "@/lib/audit";
 import { sendEmail } from "@/lib/email";
+import {
+  consumeVerificationToken,
+  sendVerificationEmail,
+} from "@/lib/email-verification";
 import { consumeResetToken, issueResetToken } from "@/lib/password-reset";
 import { validateNewPassword } from "@/lib/password-rules";
 import { SITE_URL } from "@/lib/site";
@@ -56,6 +60,8 @@ export async function signUpAction(formData: FormData) {
     recordId: newUser.id,
     newValue: { name, email },
   });
+
+  after(() => sendVerificationEmail(newUser.id, email));
 
   try {
     await signIn("credentials", { email, password, redirect: false });
@@ -195,6 +201,62 @@ export async function signInAction(formData: FormData) {
       recordId: signedInUser.id,
     });
   }
+
+  return { success: true };
+}
+
+export async function resendVerificationEmailAction() {
+  const session = await auth();
+
+  if (!session?.user?.id) {
+    return { error: "You need to sign in first." };
+  }
+
+  const userId = session.user.id;
+
+  const [user] = await db
+    .select({ email: users.email, emailVerifiedAt: users.emailVerifiedAt })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+
+  if (!user) {
+    return { error: "Account not found." };
+  }
+
+  if (user.emailVerifiedAt) {
+    return { success: true, alreadyVerified: true };
+  }
+
+  const ip = getClientIp(await headers());
+  const identifiers = [`verify-user:${userId}`, `verify-ip:${ip}`];
+
+  if (await isRateLimited(identifiers)) {
+    return {
+      error: "Too many requests. Please try again in a few minutes.",
+    };
+  }
+
+  await recordLoginAttempt(identifiers, false);
+
+  after(() => sendVerificationEmail(userId, user.email));
+
+  return { success: true };
+}
+
+export async function verifyEmailAction(token: string) {
+  const result = await consumeVerificationToken(token);
+
+  if (!result.ok) {
+    return { error: result.error };
+  }
+
+  await logAudit({
+    userId: result.userId,
+    module: "auth",
+    action: "user.email_verified",
+    recordId: result.userId,
+  });
 
   return { success: true };
 }

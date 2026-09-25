@@ -37,6 +37,7 @@ export const users = pgTable("users", {
   passwordHash: text().notNull(),
   name: text().notNull(),
   phone: text(),
+  emailVerifiedAt: timestamp(),
   createdAt: timestamp().defaultNow().notNull(),
 });
 
@@ -186,6 +187,17 @@ export const payments = pgTable(
 );
 
 export const passwordResetTokens = pgTable("password_reset_tokens", {
+  id: uuid().primaryKey().defaultRandom(),
+  userId: uuid()
+    .notNull()
+    .references(() => users.id),
+  tokenHash: text().notNull().unique(),
+  expiresAt: timestamp().notNull(),
+  usedAt: timestamp(),
+  createdAt: timestamp().defaultNow().notNull(),
+});
+
+export const emailVerificationTokens = pgTable("email_verification_tokens", {
   id: uuid().primaryKey().defaultRandom(),
   userId: uuid()
     .notNull()

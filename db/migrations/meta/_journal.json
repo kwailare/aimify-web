@@ -57,6 +57,13 @@
       "when": 1790377485010,
       "tag": "0007_sad_smasher",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1790379779532,
+      "tag": "0008_keen_jamie_braddock",
+      "breakpoints": true
     }
   ]
 }

@@ -20,6 +20,8 @@ const actionLabels: Record<string, string> = {
   "subscription.expired": "Trial expired",
   "subscription.cancelled": "Subscription cancelled",
   "user.password_changed": "Password changed",
+  "user.email_verified": "Email address confirmed",
+  "admin.email_verified": "Email confirmed by an admin",
   "user.password_reset_completed": "Password reset by email link",
   "product.created": "Product created",
   "product.updated": "Product updated",

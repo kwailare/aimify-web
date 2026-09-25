@@ -17,6 +17,10 @@ export default async function OnboardingDownloadPage() {
     redirect("/signin");
   }
 
+  if (!context.user.emailVerifiedAt) {
+    redirect("/verify-email");
+  }
+
   if (!context.user.phone) {
     redirect("/onboarding/profile");
   }

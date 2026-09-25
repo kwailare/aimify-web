@@ -6,6 +6,7 @@ import { db } from "@/db";
 import { memberships, organizations, users, warehouses } from "@/db/schema";
 import { logAudit } from "@/lib/audit";
 import { seedDefaultUnits } from "@/lib/catalog";
+import { isEmailVerified } from "@/lib/email-verification";
 
 export async function completeProfileAction(formData: FormData) {
   const session = await auth();
@@ -46,6 +47,10 @@ export async function completeOrganizationAction(formData: FormData) {
 
   if (!session?.user?.id) {
     return { error: "You need to sign in first." };
+  }
+
+  if (!(await isEmailVerified(session.user.id))) {
+    return { error: "Confirm your email address first." };
   }
 
   const name = String(formData.get("companyName") ?? "").trim();
@@ -95,6 +100,10 @@ export async function completeSubscriptionAction() {
 
   if (!session?.user?.id) {
     return { error: "You need to sign in first." };
+  }
+
+  if (!(await isEmailVerified(session.user.id))) {
+    return { error: "Confirm your email address first." };
   }
 
   const [membership] = await db

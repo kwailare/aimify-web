@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { Check, Copy, X } from "lucide-react";
 import { resetUserPasswordAction } from "@/lib/actions/admin";
+import { AdminVerifyEmailButton } from "@/components/admin-verify-email-button";
 import { formatDate } from "@/lib/format-date";
 import type { AdminUser } from "@/lib/admin";
 
@@ -255,6 +256,9 @@ export function AdminUsersTable({ users }: { users: AdminUser[] }) {
                         {user.isAdmin && (
                           <span className="admin-badge">Admin</span>
                         )}
+                        {!user.emailVerifiedAt && (
+                          <span className="admin-badge">Unverified</span>
+                        )}
                       </span>
                     </td>
                     <td>{user.email}</td>
@@ -272,6 +276,9 @@ export function AdminUsersTable({ users }: { users: AdminUser[] }) {
                       >
                         Reset password
                       </button>
+                      {!user.emailVerifiedAt && (
+                        <AdminVerifyEmailButton userId={user.id} />
+                      )}
                     </td>
                   </tr>
                 ))}

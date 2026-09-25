@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
+import { redirectIfEmailUnverified } from "@/lib/email-verification";
 import { OnboardingShell } from "@/components/onboarding-shell";
 import { OnboardingProfileForm } from "@/components/onboarding-profile-form";
 
@@ -14,6 +15,8 @@ export default async function OnboardingProfilePage() {
   if (!session?.user?.id) {
     redirect("/signin");
   }
+
+  await redirectIfEmailUnverified(session.user.id);
 
   return (
     <OnboardingShell

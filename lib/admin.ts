@@ -75,6 +75,7 @@ export async function getAllUsers() {
       name: users.name,
       email: users.email,
       phone: users.phone,
+      emailVerifiedAt: users.emailVerifiedAt,
       createdAt: users.createdAt,
       role: memberships.role,
       organizationName: organizations.name,

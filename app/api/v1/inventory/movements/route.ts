@@ -1,21 +1,29 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { and, desc, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { products, stockMovements } from "@/db/schema";
-import { getApiOrgContext } from "@/lib/api-context";
+import { guardApi } from "@/lib/api-context";
 import { logAudit } from "@/lib/audit";
+import { detectStockAlert, notifyStockAlert } from "@/lib/stock-alerts";
+import { isUuid } from "@/lib/validation";
+import { getActiveWarehouse } from "@/lib/warehouses";
 
 const VALID_TYPES = new Set(["stock_in", "stock_out", "adjustment", "count"]);
 
 export async function GET(request: Request) {
-  const context = await getApiOrgContext(request);
+  const context = await guardApi(request);
 
-  if (!context) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
-  }
+  if (context instanceof NextResponse) return context;
 
   const { searchParams } = new URL(request.url);
   const productId = searchParams.get("productId");
+
+  if (productId && !isUuid(productId)) {
+    return NextResponse.json(
+      { error: "productId must be a valid id." },
+      { status: 400 },
+    );
+  }
 
   const conditions = [eq(stockMovements.organizationId, context.organizationId)];
 
@@ -34,11 +42,9 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const context = await getApiOrgContext(request);
+  const context = await guardApi(request);
 
-  if (!context) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
-  }
+  if (context instanceof NextResponse) return context;
 
   const body = await request.json().catch(() => null);
 
@@ -54,14 +60,34 @@ export async function POST(request: Request) {
     !warehouseId ||
     !type ||
     !VALID_TYPES.has(type) ||
-    !quantity
+    !quantity ||
+    !Number.isInteger(quantity)
   ) {
     return NextResponse.json(
       {
         error:
-          "productId, warehouseId, a valid type, and a non-zero quantity are required.",
+          "productId, warehouseId, a valid type, and a non-zero whole-number quantity are required.",
       },
       { status: 400 },
+    );
+  }
+
+  if (!isUuid(productId) || !isUuid(warehouseId)) {
+    return NextResponse.json(
+      { error: "productId and warehouseId must be valid ids." },
+      { status: 400 },
+    );
+  }
+
+  const warehouse = await getActiveWarehouse(
+    context.organizationId,
+    warehouseId,
+  );
+
+  if (!warehouse) {
+    return NextResponse.json(
+      { error: "Warehouse not found or not active." },
+      { status: 404 },
     );
   }
 
@@ -77,7 +103,12 @@ export async function POST(request: Request) {
         eq(products.organizationId, context.organizationId),
       ),
     )
-    .returning({ currentStock: products.currentStock });
+    .returning({
+      currentStock: products.currentStock,
+      minStock: products.minStock,
+      name: products.name,
+      sku: products.sku,
+    });
 
   if (!updated) {
     return NextResponse.json({ error: "Product not found." }, { status: 404 });
@@ -101,6 +132,19 @@ export async function POST(request: Request) {
     })
     .returning();
 
+  const alert = detectStockAlert(previousStock, newStock, updated.minStock);
+
+  if (alert) {
+    after(() =>
+      notifyStockAlert(context.organizationId, alert, {
+        name: updated.name,
+        sku: updated.sku,
+        currentStock: newStock,
+        minStock: updated.minStock,
+      }),
+    );
+  }
+
   await logAudit({
     organizationId: context.organizationId,
     userId: context.userId,
@@ -111,5 +155,8 @@ export async function POST(request: Request) {
     newValue: { currentStock: newStock },
   });
 
-  return NextResponse.json({ movement, currentStock: newStock }, { status: 201 });
+  return NextResponse.json(
+    { movement, currentStock: newStock, alert },
+    { status: 201 },
+  );
 }

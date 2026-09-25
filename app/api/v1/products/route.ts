@@ -1,42 +1,59 @@
 import { NextResponse } from "next/server";
-import { and, eq } from "drizzle-orm";
+import { and, eq, ne } from "drizzle-orm";
 import { db } from "@/db";
 import { products } from "@/db/schema";
-import { getApiOrgContext } from "@/lib/api-context";
+import { guardApi } from "@/lib/api-context";
 import { logAudit } from "@/lib/audit";
+import { registerCatalogOption } from "@/lib/catalog";
+import { checkStockBounds, parseProductFields } from "@/lib/product-input";
 
 export async function GET(request: Request) {
-  const context = await getApiOrgContext(request);
+  const context = await guardApi(request);
 
-  if (!context) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+  if (context instanceof NextResponse) return context;
+
+  const { searchParams } = new URL(request.url);
+  const includeArchived = searchParams.get("includeArchived") === "true";
+
+  const conditions = [eq(products.organizationId, context.organizationId)];
+
+  if (!includeArchived) {
+    conditions.push(ne(products.status, "archived"));
   }
 
   const rows = await db
     .select()
     .from(products)
-    .where(eq(products.organizationId, context.organizationId));
+    .where(and(...conditions));
 
   return NextResponse.json({ products: rows });
 }
 
 export async function POST(request: Request) {
-  const context = await getApiOrgContext(request);
+  const context = await guardApi(request);
 
-  if (!context) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
-  }
+  if (context instanceof NextResponse) return context;
 
   const body = await request.json().catch(() => null);
+  const parsed = parseProductFields(body);
 
-  const sku = typeof body?.sku === "string" ? body.sku.trim() : "";
-  const name = typeof body?.name === "string" ? body.name.trim() : "";
+  if ("error" in parsed) {
+    return NextResponse.json({ error: parsed.error }, { status: 400 });
+  }
 
-  if (!sku || !name) {
+  const { data } = parsed;
+
+  if (!data.sku || !data.name) {
     return NextResponse.json(
       { error: "sku and name are required." },
       { status: 400 },
     );
+  }
+
+  const boundsError = checkStockBounds(data.minStock ?? 0, data.maxStock ?? null);
+
+  if (boundsError) {
+    return NextResponse.json({ error: boundsError }, { status: 400 });
   }
 
   const [existing] = await db
@@ -45,7 +62,7 @@ export async function POST(request: Request) {
     .where(
       and(
         eq(products.organizationId, context.organizationId),
-        eq(products.sku, sku),
+        eq(products.sku, data.sku),
       ),
     )
     .limit(1);
@@ -60,21 +77,15 @@ export async function POST(request: Request) {
   const [product] = await db
     .insert(products)
     .values({
+      ...data,
+      sku: data.sku,
+      name: data.name,
       organizationId: context.organizationId,
-      sku,
-      name,
-      barcode: typeof body?.barcode === "string" ? body.barcode : null,
-      description:
-        typeof body?.description === "string" ? body.description : null,
-      category: typeof body?.category === "string" ? body.category : null,
-      unit: typeof body?.unit === "string" && body.unit ? body.unit : "piece",
-      purchasePrice:
-        typeof body?.purchasePrice === "number" ? body.purchasePrice : 0,
-      sellingPrice:
-        typeof body?.sellingPrice === "number" ? body.sellingPrice : 0,
-      minStock: typeof body?.minStock === "number" ? body.minStock : 0,
     })
     .returning();
+
+  await registerCatalogOption(context.organizationId, "category", product.category);
+  await registerCatalogOption(context.organizationId, "unit", product.unit);
 
   await logAudit({
     organizationId: context.organizationId,

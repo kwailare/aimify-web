@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowUpRight, Check } from "lucide-react";
+import { ArrowUpRight, Check, X } from "lucide-react";
 import { useDashboardContext } from "@/components/dashboard-context";
 import { formatDate } from "@/lib/format-date";
+import { describeSubscriptionStatus, hasProductAccess } from "@/lib/subscription";
 
 export default function DashboardOverviewPage() {
   const { user, organization, role } = useDashboardContext();
@@ -11,6 +12,17 @@ export default function DashboardOverviewPage() {
   const trialEndsAt = organization.trialEndsAt
     ? formatDate(organization.trialEndsAt)
     : null;
+  const status = organization.subscriptionStatus;
+  const isSubscribed = hasProductAccess(status);
+
+  const subscriptionNote =
+    status === "trial" && trialEndsAt
+      ? `Trial ends ${trialEndsAt} · ₦25,000 / month after`
+      : status === "expired" && trialEndsAt
+        ? `Free trial ended ${trialEndsAt}`
+        : status === "active"
+          ? "₦25,000 / month"
+          : describeSubscriptionStatus(status);
 
   return (
     <div className="dash-stack">
@@ -49,16 +61,12 @@ export default function DashboardOverviewPage() {
         <div className="dash-card">
           <p className="dash-card-label">Subscription</p>
           <p className="dash-card-value">Full Access</p>
-          <p className="dash-card-note">
-            {trialEndsAt
-              ? `Trial ends ${trialEndsAt} · ₦25,000 / month after`
-              : "₦25,000 / month"}
-          </p>
+          <p className="dash-card-note">{subscriptionNote}</p>
         </div>
         <div className="dash-card">
           <p className="dash-card-label">Your role</p>
           <p className="dash-card-value">{role}</p>
-          <p className="dash-card-note">Manage roles in Settings</p>
+          <p className="dash-card-note">Set when your organization was created</p>
         </div>
       </div>
 
@@ -71,8 +79,15 @@ export default function DashboardOverviewPage() {
           <li className="is-done">
             <Check size={14} aria-hidden="true" /> Organization created
           </li>
-          <li className="is-done">
-            <Check size={14} aria-hidden="true" /> Subscription active
+          <li className={isSubscribed ? "is-done" : undefined}>
+            {isSubscribed ? (
+              <Check size={14} aria-hidden="true" />
+            ) : (
+              <X size={14} aria-hidden="true" />
+            )}{" "}
+            {isSubscribed
+              ? "Subscription active"
+              : `Subscription ${describeSubscriptionStatus(status).toLowerCase()}`}
           </li>
         </ul>
       </div>

@@ -12,6 +12,16 @@ const actionLabels: Record<string, string> = {
   "subscription.activated": "Subscription activated",
   "organization.suspended": "Organization suspended",
   "organization.reactivated": "Organization reactivated",
+  "organization.updated": "Organization profile updated",
+  "subscription.expired": "Trial expired",
+  "subscription.cancelled": "Subscription cancelled",
+  "user.password_changed": "Password changed",
+  "user.password_reset_completed": "Password reset by email link",
+  "product.created": "Product created",
+  "product.updated": "Product updated",
+  "product.archived": "Product archived",
+  "warehouse.created": "Warehouse created",
+  "warehouse.updated": "Warehouse updated",
 };
 
 export function describeAuditAction(action: string) {

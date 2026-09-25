@@ -1,24 +1,44 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+import { useState, type FormEvent } from "react";
 import { useDashboardContext } from "@/components/dashboard-context";
-
-const industries = [
-  "Wholesale",
-  "Distribution",
-  "Retail",
-  "Warehousing",
-  "Other",
-];
-
-const currencies = [
-  { code: "NGN", label: "Naira" },
-  { code: "USD", label: "Dollar" },
-  { code: "GHS", label: "Cedi" },
-  { code: "KES", label: "Shilling" },
-];
+import { updateOrganizationAction } from "@/lib/actions/organization";
+import {
+  CURRENCIES,
+  DATE_FORMATS,
+  INDUSTRIES,
+  TIMEZONES,
+} from "@/lib/org-options";
 
 export default function DashboardOrganizationPage() {
+  const router = useRouter();
   const { organization } = useDashboardContext();
+  const [notice, setNotice] = useState<{
+    kind: "error" | "success";
+    text: string;
+  } | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setNotice(null);
+    setIsSaving(true);
+
+    const result = await updateOrganizationAction(
+      new FormData(event.currentTarget),
+    );
+
+    setIsSaving(false);
+
+    if (result?.error) {
+      setNotice({ kind: "error", text: result.error });
+      return;
+    }
+
+    setNotice({ kind: "success", text: "Organization profile saved." });
+    router.refresh();
+  };
 
   return (
     <div className="dash-stack">
@@ -31,7 +51,8 @@ export default function DashboardOrganizationPage() {
         </p>
       </div>
 
-      <form className="dash-card dash-form">
+      <form className="dash-card dash-form" onSubmit={handleSubmit}>
+        <p className="dash-card-label">Company</p>
         <div className="auth-field-row">
           <div className="auth-field">
             <label className="auth-label" htmlFor="dash-org-name">
@@ -40,8 +61,10 @@ export default function DashboardOrganizationPage() {
             <input
               className="auth-input"
               id="dash-org-name"
+              name="companyName"
               defaultValue={organization.name}
               type="text"
+              required
             />
           </div>
           <div className="auth-field">
@@ -51,9 +74,10 @@ export default function DashboardOrganizationPage() {
             <select
               className="auth-input"
               id="dash-org-industry"
-              defaultValue={organization.industry ?? industries[0]}
+              name="industry"
+              defaultValue={organization.industry ?? INDUSTRIES[0]}
             >
-              {industries.map((option) => (
+              {INDUSTRIES.map((option) => (
                 <option key={option} value={option}>
                   {option}
                 </option>
@@ -63,20 +87,17 @@ export default function DashboardOrganizationPage() {
         </div>
         <div className="auth-field-row">
           <div className="auth-field">
-            <label className="auth-label" htmlFor="dash-org-currency">
-              Currency
+            <label className="auth-label" htmlFor="dash-org-registration">
+              Registration number
             </label>
-            <select
+            <input
               className="auth-input"
-              id="dash-org-currency"
-              defaultValue={organization.currency}
-            >
-              {currencies.map((option) => (
-                <option key={option.code} value={option.code}>
-                  {option.code} — {option.label}
-                </option>
-              ))}
-            </select>
+              id="dash-org-registration"
+              name="registrationNumber"
+              type="text"
+              defaultValue={organization.registrationNumber ?? ""}
+              placeholder="RC 1234567"
+            />
           </div>
           <div className="auth-field">
             <label className="auth-label" htmlFor="dash-org-warehouse">
@@ -85,14 +106,154 @@ export default function DashboardOrganizationPage() {
             <input
               className="auth-input"
               id="dash-org-warehouse"
+              name="warehouseName"
               type="text"
               defaultValue={organization.warehouseName ?? ""}
               placeholder="Main warehouse — Lagos"
             />
           </div>
         </div>
-        <button className="auth-submit dash-submit" type="button">
-          Save changes
+
+        <p className="dash-card-label">Contact</p>
+        <div className="auth-field">
+          <label className="auth-label" htmlFor="dash-org-address">
+            Address
+          </label>
+          <input
+            className="auth-input"
+            id="dash-org-address"
+            name="address"
+            type="text"
+            autoComplete="street-address"
+            defaultValue={organization.address ?? ""}
+          />
+        </div>
+        <div className="auth-field-row">
+          <div className="auth-field">
+            <label className="auth-label" htmlFor="dash-org-phone">
+              Company phone
+            </label>
+            <input
+              className="auth-input"
+              id="dash-org-phone"
+              name="phone"
+              type="tel"
+              defaultValue={organization.phone ?? ""}
+            />
+          </div>
+          <div className="auth-field">
+            <label className="auth-label" htmlFor="dash-org-email">
+              Company email
+            </label>
+            <input
+              className="auth-input"
+              id="dash-org-email"
+              name="email"
+              type="email"
+              defaultValue={organization.email ?? ""}
+            />
+          </div>
+        </div>
+
+        <p className="dash-card-label">Regional settings</p>
+        <div className="auth-field-row">
+          <div className="auth-field">
+            <label className="auth-label" htmlFor="dash-org-currency">
+              Currency
+            </label>
+            <select
+              className="auth-input"
+              id="dash-org-currency"
+              name="currency"
+              defaultValue={organization.currency}
+            >
+              {CURRENCIES.map((option) => (
+                <option key={option.code} value={option.code}>
+                  {option.code} — {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="auth-field">
+            <label className="auth-label" htmlFor="dash-org-timezone">
+              Time zone
+            </label>
+            <select
+              className="auth-input"
+              id="dash-org-timezone"
+              name="timezone"
+              defaultValue={organization.timezone}
+            >
+              {TIMEZONES.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <div className="auth-field-row">
+          <div className="auth-field">
+            <label className="auth-label" htmlFor="dash-org-date-format">
+              Date format
+            </label>
+            <select
+              className="auth-input"
+              id="dash-org-date-format"
+              name="dateFormat"
+              defaultValue={organization.dateFormat}
+            >
+              {DATE_FORMATS.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="auth-field">
+            <label className="auth-label" htmlFor="dash-org-tax-name">
+              Tax name
+            </label>
+            <input
+              className="auth-input"
+              id="dash-org-tax-name"
+              name="taxName"
+              type="text"
+              defaultValue={organization.taxName ?? ""}
+              placeholder="VAT"
+            />
+          </div>
+        </div>
+        <div className="auth-field">
+          <label className="auth-label" htmlFor="dash-org-tax-rate">
+            Tax rate (%)
+          </label>
+          <input
+            className="auth-input"
+            id="dash-org-tax-rate"
+            name="taxRate"
+            type="number"
+            min="0"
+            max="100"
+            step="0.01"
+            defaultValue={organization.taxRate}
+          />
+        </div>
+
+        {notice && (
+          <p
+            className={notice.kind === "error" ? "auth-error" : "auth-success"}
+            role={notice.kind === "error" ? "alert" : "status"}
+          >
+            {notice.text}
+          </p>
+        )}
+        <button
+          className="auth-submit dash-submit"
+          type="submit"
+          disabled={isSaving}
+        >
+          {isSaving ? "Saving…" : "Save changes"}
         </button>
       </form>
     </div>

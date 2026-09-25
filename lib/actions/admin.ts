@@ -63,7 +63,10 @@ export async function reactivateOrganizationAction(organizationId: string) {
   }
 
   const [before] = await db
-    .select({ subscriptionStatus: organizations.subscriptionStatus })
+    .select({
+      subscriptionStatus: organizations.subscriptionStatus,
+      trialEndsAt: organizations.trialEndsAt,
+    })
     .from(organizations)
     .where(eq(organizations.id, organizationId))
     .limit(1);
@@ -72,7 +75,11 @@ export async function reactivateOrganizationAction(organizationId: string) {
     return { error: "Organization not found." };
   }
 
-  const nextStatus = "trial";
+  const nextStatus = !before.trialEndsAt
+    ? "pending"
+    : before.trialEndsAt > new Date()
+      ? "trial"
+      : "active";
 
   await db
     .update(organizations)

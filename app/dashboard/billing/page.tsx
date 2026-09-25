@@ -1,8 +1,15 @@
-"use client";
-
+import { desc, eq } from "drizzle-orm";
 import { Check } from "lucide-react";
-import { useDashboardContext } from "@/components/dashboard-context";
+import { redirect } from "next/navigation";
+import { CancelSubscriptionButton } from "@/components/cancel-subscription-button";
+import { db } from "@/db";
+import { payments } from "@/db/schema";
 import { formatDate } from "@/lib/format-date";
+import { getOrgContext } from "@/lib/org";
+import {
+  canCancelSubscription,
+  describeSubscriptionStatus,
+} from "@/lib/subscription";
 
 const planFeatures = [
   "Real-time inventory across your warehouse",
@@ -12,23 +19,47 @@ const planFeatures = [
   "Full audit trail on every transaction",
 ];
 
-export default function DashboardBillingPage() {
-  const { organization } = useDashboardContext();
+function planNote(status: string, trialEndsAt: Date | null) {
+  switch (status) {
+    case "trial":
+      return "14-day free trial · billed monthly after";
+    case "active":
+      return "Billed monthly";
+    case "past_due":
+      return "Payment overdue";
+    case "expired":
+      return trialEndsAt
+        ? `Free trial ended ${formatDate(trialEndsAt)}`
+        : "Free trial ended";
+    case "cancelled":
+      return "Subscription cancelled";
+    default:
+      return describeSubscriptionStatus(status);
+  }
+}
 
-  const invoices = [
-    {
-      date: `Trial started ${formatDate(organization.createdAt)}`,
-      amount: "₦0",
-      status: "Active",
-    },
-    {
-      date: organization.trialEndsAt
-        ? `Trial ends ${formatDate(organization.trialEndsAt)}`
-        : "Trial end date not set",
-      amount: "₦25,000",
-      status: "Upcoming",
-    },
-  ];
+function paymentBadgeClass(status: string) {
+  return status === "succeeded" ? "is-active" : "is-upcoming";
+}
+
+export default async function DashboardBillingPage() {
+  const context = await getOrgContext();
+
+  if (!context?.membership) {
+    redirect("/signin");
+  }
+
+  const { organization } = context.membership;
+
+  const history = await db
+    .select()
+    .from(payments)
+    .where(eq(payments.organizationId, organization.id))
+    .orderBy(desc(payments.createdAt))
+    .limit(50);
+
+  const status = organization.subscriptionStatus;
+  const needsPlan = ["expired", "cancelled", "past_due"].includes(status);
 
   return (
     <div className="dash-stack">
@@ -45,9 +76,7 @@ export default function DashboardBillingPage() {
           <div>
             <p className="plan-summary-name">Full Access</p>
             <p className="plan-summary-note">
-              {organization.subscriptionStatus === "trial"
-                ? "14-day free trial · billed monthly after"
-                : "Billed monthly"}
+              {planNote(status, organization.trialEndsAt)}
             </p>
           </div>
           <p className="plan-summary-price">
@@ -62,43 +91,61 @@ export default function DashboardBillingPage() {
             </li>
           ))}
         </ul>
+        {(needsPlan || status === "trial") && (
+          <p className="dash-empty">
+            Online payments aren&apos;t live yet. To{" "}
+            {needsPlan ? "reactivate" : "activate"} your plan, email{" "}
+            <a className="dash-banner-link" href="mailto:support@aimify.app">
+              support@aimify.app
+            </a>{" "}
+            and we&apos;ll set it up with you.
+          </p>
+        )}
       </div>
 
       <div className="dash-card">
         <p className="dash-card-label">Billing history</p>
-        <div className="dash-table-wrap">
-          <table className="dash-table dash-table--money">
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Amount</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {invoices.map((invoice) => (
-                <tr key={invoice.date}>
-                  <td>{invoice.date}</td>
-                  <td>{invoice.amount}</td>
-                  <td>
-                    <span
-                      className={`dash-badge ${
-                        invoice.status === "Active" ? "is-active" : "is-upcoming"
-                      }`}
-                    >
-                      {invoice.status}
-                    </span>
-                  </td>
+        {history.length === 0 ? (
+          <p className="dash-empty">
+            {status === "trial" && organization.trialEndsAt
+              ? `No payments yet. Your free trial runs until ${formatDate(organization.trialEndsAt)}.`
+              : "No payments yet."}
+          </p>
+        ) : (
+          <div className="dash-table-wrap">
+            <table className="dash-table dash-table--money">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Description</th>
+                  <th>Amount</th>
+                  <th>Status</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {history.map((payment) => (
+                  <tr key={payment.id}>
+                    <td>{formatDate(payment.paidAt ?? payment.createdAt)}</td>
+                    <td>{payment.description ?? "Subscription"}</td>
+                    <td>
+                      {payment.currency} {payment.amount.toLocaleString("en-US")}
+                    </td>
+                    <td>
+                      <span
+                        className={`dash-badge ${paymentBadgeClass(payment.status)}`}
+                      >
+                        {describeSubscriptionStatus(payment.status)}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
-      <button className="dash-danger-link" type="button">
-        Cancel subscription
-      </button>
+      {canCancelSubscription(status) && <CancelSubscriptionButton />}
     </div>
   );
 }

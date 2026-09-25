@@ -43,6 +43,13 @@
       "when": 1790136234493,
       "tag": "0005_daily_kinsey_walden",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1790374710568,
+      "tag": "0006_dizzy_prowler",
+      "breakpoints": true
     }
   ]
 }

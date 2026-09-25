@@ -5,6 +5,7 @@ import { auth } from "@/auth";
 import { db } from "@/db";
 import { memberships, organizations, users, warehouses } from "@/db/schema";
 import { logAudit } from "@/lib/audit";
+import { seedDefaultUnits } from "@/lib/catalog";
 
 export async function completeProfileAction(formData: FormData) {
   const session = await auth();
@@ -67,6 +68,8 @@ export async function completeOrganizationAction(formData: FormData) {
     organizationId: org.id,
     role,
   });
+
+  await seedDefaultUnits(org.id);
 
   if (warehouseName) {
     await db.insert(warehouses).values({

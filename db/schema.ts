@@ -17,6 +17,14 @@ export const organizations = pgTable("organizations", {
   industry: text(),
   currency: text().notNull().default("NGN"),
   warehouseName: text(),
+  registrationNumber: text(),
+  address: text(),
+  phone: text(),
+  email: text(),
+  taxName: text(),
+  taxRate: numeric({ mode: "number" }).notNull().default(0),
+  timezone: text().notNull().default("Africa/Lagos"),
+  dateFormat: text().notNull().default("DD/MM/YYYY"),
   subscriptionStatus: text().notNull().default("pending"),
   trialEndsAt: timestamp(),
   createdAt: timestamp().defaultNow().notNull(),
@@ -88,11 +96,13 @@ export const products = pgTable(
     barcode: text(),
     name: text().notNull(),
     description: text(),
+    brand: text(),
     category: text(),
     unit: text().notNull().default("piece"),
     purchasePrice: numeric({ mode: "number" }).notNull().default(0),
     sellingPrice: numeric({ mode: "number" }).notNull().default(0),
     minStock: integer().notNull().default(0),
+    maxStock: integer(),
     currentStock: integer().notNull().default(0),
     status: text().notNull().default("active"),
     createdAt: timestamp().defaultNow().notNull(),
@@ -134,3 +144,52 @@ export const loginAttempts = pgTable(
     table.createdAt,
   )],
 );
+
+export const catalogOptions = pgTable(
+  "catalog_options",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    organizationId: uuid()
+      .notNull()
+      .references(() => organizations.id),
+    kind: text().notNull(),
+    name: text().notNull(),
+    createdAt: timestamp().defaultNow().notNull(),
+  },
+  (table) => [unique().on(table.organizationId, table.kind, table.name)],
+);
+
+export const payments = pgTable(
+  "payments",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    organizationId: uuid()
+      .notNull()
+      .references(() => organizations.id),
+    amount: numeric({ mode: "number" }).notNull(),
+    currency: text().notNull().default("NGN"),
+    status: text().notNull().default("pending"),
+    provider: text(),
+    providerReference: text().unique(),
+    description: text(),
+    paidAt: timestamp(),
+    createdAt: timestamp().defaultNow().notNull(),
+  },
+  (table) => [
+    index("payments_organization_created_at_idx").on(
+      table.organizationId,
+      table.createdAt,
+    ),
+  ],
+);
+
+export const passwordResetTokens = pgTable("password_reset_tokens", {
+  id: uuid().primaryKey().defaultRandom(),
+  userId: uuid()
+    .notNull()
+    .references(() => users.id),
+  tokenHash: text().notNull().unique(),
+  expiresAt: timestamp().notNull(),
+  usedAt: timestamp(),
+  createdAt: timestamp().defaultNow().notNull(),
+});

@@ -1,6 +1,7 @@
 "use server";
 
 import { headers } from "next/headers";
+import { after } from "next/server";
 import { eq } from "drizzle-orm";
 import { hash } from "bcryptjs";
 import { AuthError } from "next-auth";
@@ -8,6 +9,10 @@ import { db } from "@/db";
 import { users } from "@/db/schema";
 import { signIn } from "@/auth";
 import { logAudit } from "@/lib/audit";
+import { sendEmail } from "@/lib/email";
+import { consumeResetToken, issueResetToken } from "@/lib/password-reset";
+import { validateNewPassword } from "@/lib/password-rules";
+import { SITE_URL } from "@/lib/site";
 import { getClientIp, isRateLimited, recordLoginAttempt } from "@/lib/rate-limit";
 
 export async function signUpAction(formData: FormData) {
@@ -21,8 +26,10 @@ export async function signUpAction(formData: FormData) {
     return { error: "All fields are required." };
   }
 
-  if (password.length < 8) {
-    return { error: "Password must be at least 8 characters." };
+  const passwordError = validateNewPassword(password);
+
+  if (passwordError) {
+    return { error: passwordError };
   }
 
   const [existing] = await db
@@ -73,6 +80,17 @@ export async function requestPasswordResetAction(formData: FormData) {
     return { error: "Enter your email address." };
   }
 
+  const ip = getClientIp(await headers());
+  const identifiers = [`reset-ip:${ip}`, `reset-email:${email}`];
+
+  if (await isRateLimited(identifiers)) {
+    return {
+      error: "Too many requests. Please try again in a few minutes.",
+    };
+  }
+
+  await recordLoginAttempt(identifiers, false);
+
   const [user] = await db
     .select({ id: users.id })
     .from(users)
@@ -80,13 +98,54 @@ export async function requestPasswordResetAction(formData: FormData) {
     .limit(1);
 
   if (user) {
-    await logAudit({
-      userId: user.id,
-      module: "auth",
-      action: "auth.password_reset_requested",
-      recordId: user.id,
+    after(async () => {
+      const token = await issueResetToken(user.id);
+      const link = `${SITE_URL}/reset-password?token=${token}`;
+
+      await sendEmail({
+        to: email,
+        subject: "Reset your Aimify password",
+        text: `Someone asked to reset the password for your Aimify account.
+
+Use this link within 1 hour to choose a new password:
+${link}
+
+If you didn't ask for this, you can ignore this email. Your password won't change.`,
+        html: `<p>Someone asked to reset the password for your Aimify account.</p><p><a href="${link}">Choose a new password</a> (the link works for 1 hour).</p><p>If you didn't ask for this, you can ignore this email. Your password won't change.</p>`,
+      });
+
+      await logAudit({
+        userId: user.id,
+        module: "auth",
+        action: "auth.password_reset_requested",
+        recordId: user.id,
+      });
     });
   }
+
+  return { success: true };
+}
+
+export async function resetPasswordAction(token: string, formData: FormData) {
+  const password = String(formData.get("password") ?? "");
+  const confirm = String(formData.get("confirmPassword") ?? "");
+
+  if (password !== confirm) {
+    return { error: "The two passwords don't match." };
+  }
+
+  const result = await consumeResetToken(token, password);
+
+  if (!result.ok) {
+    return { error: result.error };
+  }
+
+  await logAudit({
+    userId: result.userId,
+    module: "auth",
+    action: "user.password_reset_completed",
+    recordId: result.userId,
+  });
 
   return { success: true };
 }

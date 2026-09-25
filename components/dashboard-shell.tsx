@@ -21,6 +21,7 @@ import { signOut } from "next-auth/react";
 import type { organizations, users } from "@/db/schema";
 import { DashboardProvider } from "@/components/dashboard-context";
 import { toggleTheme, useIsDarkMode } from "@/components/theme-store";
+import { describeSubscriptionStatus } from "@/lib/subscription";
 
 const navItems = [
   { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
@@ -31,12 +32,14 @@ const navItems = [
   { href: "/dashboard/settings", label: "Settings", icon: Settings },
 ];
 
-function formatStatus(status: string) {
-  return status
-    .split("_")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
-}
+const BANNER_TEXT: Record<string, string> = {
+  expired:
+    "Your free trial has ended, so the desktop app is locked until you subscribe.",
+  cancelled:
+    "Your subscription is cancelled, so the desktop app is locked until you reactivate.",
+  past_due:
+    "Your last payment is overdue. Update your billing to keep the desktop app running.",
+};
 
 export function DashboardShell({
   user,
@@ -100,7 +103,7 @@ export function DashboardShell({
           <div className="dash-sidebar-footer">
             <p className="dash-org-name">{organization.name}</p>
             <p className="dash-org-plan">
-              Full Access · {formatStatus(organization.subscriptionStatus)}
+              Full Access · {describeSubscriptionStatus(organization.subscriptionStatus)}
             </p>
             <button
               className="dash-signout"
@@ -142,7 +145,17 @@ export function DashboardShell({
               {isDark ? <Sun size={16} /> : <Moon size={16} />}
             </Button>
           </header>
-          <div className="dash-content">{children}</div>
+          <div className="dash-content">
+            {BANNER_TEXT[organization.subscriptionStatus] && (
+              <div className="dash-banner is-warning" role="status">
+                <span>{BANNER_TEXT[organization.subscriptionStatus]}</span>
+                <Link className="dash-banner-link" href="/dashboard/billing">
+                  Go to billing
+                </Link>
+              </div>
+            )}
+            {children}
+          </div>
         </div>
       </div>
     </DashboardProvider>

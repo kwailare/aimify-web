@@ -1,4 +1,4 @@
-import { count, desc, eq } from "drizzle-orm";
+import { and, count, desc, eq, gt, isNull, or } from "drizzle-orm";
 import { auth } from "@/auth";
 import { db } from "@/db";
 import { adminUsers, memberships, organizations, users } from "@/db/schema";
@@ -30,7 +30,12 @@ export async function getPlatformStats() {
   const [trialCount] = await db
     .select({ value: count() })
     .from(organizations)
-    .where(eq(organizations.subscriptionStatus, "trial"));
+    .where(
+      and(
+        eq(organizations.subscriptionStatus, "trial"),
+        or(isNull(organizations.trialEndsAt), gt(organizations.trialEndsAt, new Date())),
+      ),
+    );
   const [suspendedCount] = await db
     .select({ value: count() })
     .from(organizations)

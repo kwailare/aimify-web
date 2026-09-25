@@ -3705,3 +3705,61 @@ textarea.auth-input {
     transition: none;
   }
 }
+
+.auth-success {
+  border: 1px solid rgb(46 125 79 / 30%);
+  border-radius: 0.7rem;
+  background: rgb(46 125 79 / 10%);
+  padding: 0.65rem 0.85rem;
+  color: #2e7d4f;
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.dark .auth-success {
+  border-color: rgb(127 209 160 / 30%);
+  background: rgb(127 209 160 / 10%);
+  color: #7fd1a0;
+}
+
+.dash-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  border: 1px solid rgb(216 139 0 / 35%);
+  border-radius: 0.9rem;
+  background: rgb(242 178 51 / 12%);
+  margin-bottom: 1rem;
+  padding: 0.75rem 1rem;
+  color: var(--aimify-ink);
+  font-size: 0.86rem;
+  line-height: 1.5;
+}
+
+.dash-banner.is-warning {
+  border-color: rgb(209 69 59 / 35%);
+  background: rgb(209 69 59 / 10%);
+}
+
+.dash-banner-link {
+  color: var(--aimify-gold);
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+.dash-empty {
+  margin-top: 0.9rem;
+  color: var(--aimify-muted);
+  font-size: 0.86rem;
+  line-height: 1.6;
+}
+
+.dash-inline-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1rem;
+}

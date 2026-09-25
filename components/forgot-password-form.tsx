@@ -34,10 +34,10 @@ export function ForgotPasswordForm() {
           <MailCheck size={22} strokeWidth={1.8} />
         </span>
         <p>
-          If an account exists for that email, our team has been notified
-          and will reach out within one business day. You can also email{" "}
-          <a href="mailto:support@aimify.app">support@aimify.app</a>{" "}
-          directly.
+          If an account exists for that email, we&apos;ve sent a link to
+          reset your password. It works for 1 hour. Nothing arrived? Check
+          your spam folder or email{" "}
+          <a href="mailto:support@aimify.app">support@aimify.app</a>.
         </p>
       </div>
     );
@@ -61,7 +61,7 @@ export function ForgotPasswordForm() {
       </div>
       {error && <p className="auth-error">{error}</p>}
       <button className="auth-submit" type="submit" disabled={isPending}>
-        {isPending ? "Sending…" : "Request reset"}
+        {isPending ? "Sending…" : "Email me a reset link"}
         <ArrowUpRight size={16} aria-hidden="true" />
       </button>
     </form>

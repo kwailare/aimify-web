@@ -1,10 +1,14 @@
 import { count, desc, eq, min, or } from "drizzle-orm";
 import { db } from "@/db";
+import { getRequestMeta } from "@/lib/sessions";
 import { auditLogs, organizations, users } from "@/db/schema";
 
 const actionLabels: Record<string, string> = {
   "user.signed_up": "Account created",
   "user.signed_in": "Signed in",
+  "user.signed_out": "Signed out",
+  "user.sessions_revoked": "Signed-in devices signed out",
+  "user.session_revoked": "Signed-in device removed",
   "user.password_reset": "Password reset",
   "auth.password_reset_requested": "Requested a password reset",
   "profile.updated": "Profile updated",
@@ -60,6 +64,8 @@ export async function logAudit(entry: {
   previousValue?: unknown;
   newValue?: unknown;
 }) {
+  const meta = await getRequestMeta();
+
   await db.insert(auditLogs).values({
     organizationId: entry.organizationId ?? null,
     userId: entry.userId ?? null,
@@ -68,6 +74,8 @@ export async function logAudit(entry: {
     recordId: entry.recordId ?? null,
     previousValue: entry.previousValue ?? null,
     newValue: entry.newValue ?? null,
+    ip: meta.ip,
+    userAgent: meta.userAgent,
   });
 }
 
@@ -103,6 +111,8 @@ export async function getAllAuditLogs(limit = 50) {
       createdAt: auditLogs.createdAt,
       actorName: users.name,
       actorEmail: users.email,
+      ip: auditLogs.ip,
+      userAgent: auditLogs.userAgent,
       organizationName: organizations.name,
     })
     .from(auditLogs)

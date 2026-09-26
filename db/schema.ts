@@ -52,6 +52,7 @@ export const users = pgTable("users", {
   name: text().notNull(),
   phone: text(),
   emailVerifiedAt: timestamp(),
+  sessionsValidAfter: timestamp(),
   createdAt: timestamp().defaultNow().notNull(),
 });
 
@@ -85,6 +86,8 @@ export const auditLogs = pgTable("audit_logs", {
   recordId: text(),
   previousValue: jsonb(),
   newValue: jsonb(),
+  ip: text(),
+  userAgent: text(),
   createdAt: timestamp().defaultNow().notNull(),
 });
 
@@ -259,4 +262,23 @@ export const subscriptionNotices = pgTable(
     sentAt: timestamp().defaultNow().notNull(),
   },
   (table) => [unique().on(table.organizationId, table.kind, table.period)],
+);
+
+export const userSessions = pgTable(
+  "user_sessions",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    userId: uuid()
+      .notNull()
+      .references(() => users.id),
+    kind: text().notNull(),
+    ip: text(),
+    userAgent: text(),
+    deviceName: text(),
+    createdAt: timestamp().defaultNow().notNull(),
+    lastSeenAt: timestamp().defaultNow().notNull(),
+    expiresAt: timestamp().notNull(),
+    revokedAt: timestamp(),
+  },
+  (table) => [index("user_sessions_user_idx").on(table.userId, table.createdAt)],
 );

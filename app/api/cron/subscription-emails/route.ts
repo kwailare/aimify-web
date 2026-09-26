@@ -1,5 +1,6 @@
 import { timingSafeEqual } from "crypto";
 import { NextResponse } from "next/server";
+import { pruneSessions } from "@/lib/sessions";
 import { runSubscriptionNotices } from "@/lib/subscription-notices";
 
 export const dynamic = "force-dynamic";
@@ -28,6 +29,8 @@ export async function GET(request: Request) {
   }
 
   const summary = await runSubscriptionNotices();
+
+  await pruneSessions();
 
   return NextResponse.json({ ok: true, ...summary });
 }

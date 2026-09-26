@@ -15,6 +15,7 @@ import {
   sendVerificationEmail,
 } from "@/lib/email-verification";
 import { consumeResetToken, issueResetToken } from "@/lib/password-reset";
+import { revokeAllSessions } from "@/lib/sessions";
 import { validateNewPassword } from "@/lib/password-rules";
 import { SITE_URL } from "@/lib/site";
 import { getClientIp, isRateLimited, recordLoginAttempt } from "@/lib/rate-limit";
@@ -145,6 +146,8 @@ export async function resetPasswordAction(token: string, formData: FormData) {
   if (!result.ok) {
     return { error: result.error };
   }
+
+  await revokeAllSessions(result.userId);
 
   await logAudit({
     userId: result.userId,

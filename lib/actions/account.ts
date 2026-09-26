@@ -6,6 +6,7 @@ import { auth } from "@/auth";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { logAudit } from "@/lib/audit";
+import { revokeAllSessions } from "@/lib/sessions";
 import { validateNewPassword } from "@/lib/password-rules";
 import { isRateLimited, recordLoginAttempt } from "@/lib/rate-limit";
 
@@ -109,11 +110,16 @@ export async function changePasswordAction(formData: FormData) {
     .set({ passwordHash: await hash(newPassword, 10) })
     .where(eq(users.id, userId));
 
+  const signedOut = await revokeAllSessions(userId, {
+    exceptSessionId: session.user.sessionId,
+  });
+
   await logAudit({
     userId,
     module: "auth",
     action: "user.password_changed",
     recordId: userId,
+    newValue: { otherDevicesSignedOut: signedOut },
   });
 
   return { success: true };

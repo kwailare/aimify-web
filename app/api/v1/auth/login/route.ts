@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { verifyCredentials } from "@/lib/credentials";
 import { createApiToken } from "@/lib/api-auth";
+import { createSession, metaFromHeaders } from "@/lib/sessions";
 import { logAudit } from "@/lib/audit";
 import { getClientIp, isRateLimited, recordLoginAttempt } from "@/lib/rate-limit";
 
@@ -39,7 +40,15 @@ export async function POST(request: Request) {
 
   await recordLoginAttempt(identifiers, true);
 
-  const token = await createApiToken(user.id);
+  const deviceName =
+    typeof body?.deviceName === "string" ? body.deviceName : null;
+  const session = await createSession({
+    userId: user.id,
+    kind: "desktop",
+    meta: metaFromHeaders(request.headers),
+    deviceName,
+  });
+  const token = await createApiToken(user.id, session.id);
 
   await logAudit({
     userId: user.id,
@@ -49,5 +58,5 @@ export async function POST(request: Request) {
     newValue: { client: "api" },
   });
 
-  return NextResponse.json({ token });
+  return NextResponse.json({ token, expiresAt: session.expiresAt });
 }

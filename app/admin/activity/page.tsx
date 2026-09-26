@@ -5,6 +5,7 @@ import {
   getAllAuditLogs,
   getAuditStats,
 } from "@/lib/audit";
+import { describeDevice } from "@/lib/sessions";
 
 const LIMITS = [100, 250, 500, 1000];
 
@@ -27,6 +28,8 @@ export default async function AdminActivityPage({
     createdAt: log.createdAt,
     actorName: log.actorName,
     actorEmail: log.actorEmail,
+    ip: log.ip,
+    device: log.userAgent ? describeDevice(log.userAgent) : null,
     organizationName: log.organizationName,
     module: log.module,
     label: describeAuditAction(log.action),

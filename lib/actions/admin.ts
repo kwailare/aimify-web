@@ -11,6 +11,7 @@ import { countAuditLogs, deleteAuditLogs } from "@/lib/activity-history";
 import { clearCutoff, isClearRange } from "@/lib/activity-ranges";
 import { getRecentActivity, logAudit } from "@/lib/audit";
 import { sendVerificationEmail } from "@/lib/email-verification";
+import { revokeAllSessions } from "@/lib/sessions";
 import { notifySubscriptionChange } from "@/lib/subscription-notices";
 
 const TEMP_PASSWORD_ALPHABET =
@@ -138,6 +139,7 @@ export async function resetUserPasswordAction(
   const passwordHash = await hash(passwordToSet, 10);
 
   await db.update(users).set({ passwordHash }).where(eq(users.id, userId));
+  await revokeAllSessions(userId);
 
   await logAudit({
     userId: context.admin.id,

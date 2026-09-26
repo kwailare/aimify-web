@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { signOut } from "next-auth/react";
 import { PasswordInput } from "@/components/password-input";
+import { SignedInDevices } from "@/components/signed-in-devices";
 import { useDashboardContext } from "@/components/dashboard-context";
 import { changePasswordAction, updateProfileAction } from "@/lib/actions/account";
 
@@ -188,6 +189,8 @@ export default function DashboardSettingsPage() {
           {isSavingPassword ? "Updating…" : "Update password"}
         </button>
       </form>
+
+      <SignedInDevices />
 
       <button className="dash-danger-link" type="button" onClick={handleSignOut}>
         Sign out of Aimify

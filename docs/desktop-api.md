@@ -14,9 +14,14 @@ separate, token-based path instead:
 1. `POST /api/v1/auth/login` with an email + password → get back a signed JWT.
 2. Send that JWT as `Authorization: Bearer <token>` on every subsequent
    request.
-3. The token is a stateless JWT (HS256, 30-day expiry). There is no
-   server-side revocation yet — "logging out" on the client just means
-   discarding the stored token locally. Once it expires, log in again.
+3. Each login creates a server-side session (device name, IP, last activity)
+   and the token is a signed JWT (HS256, 30-day expiry) tied to it. The token
+   stops working, at once, when the session is revoked. Sessions are revoked
+   by `POST /auth/logout`, by the user from Settings on the website ("Sign
+   out" on a device, or "Sign out other devices"), and automatically for every
+   device when the person changes or resets their password, an admin resets it,
+   or they are removed from the team. A revoked or expired token gets `401`, so
+   the desktop client should treat `401` as "sign in again".
 
 The user must already have an Aimify account (created via the web app's
 `/signup`) before they can log in from the desktop client — this API does not
@@ -128,15 +133,21 @@ Request:
 ```json
 {
   "email": "you@company.com",
-  "password": "your-password"
+  "password": "your-password",
+  "deviceName": "Shop counter PC"
 }
 ```
+
+`deviceName` is optional (up to 80 characters). It labels this sign-in in the
+user's "Signed-in devices" list on the website; without it the label falls
+back to the request's `User-Agent`.
 
 Success — `200`:
 
 ```json
 {
-  "token": "eyJhbGciOiJIUzI1NiJ9...."
+  "token": "eyJhbGciOiJIUzI1NiJ9....",
+  "expiresAt": "2026-10-26T09:00:00.000Z"
 }
 ```
 
@@ -158,6 +169,15 @@ passes.
   "error": "Too many failed attempts. Please try again in a few minutes."
 }
 ```
+
+## `POST /api/v1/auth/logout`
+
+Header required: `Authorization: Bearer <token>`. No body.
+
+Revokes the session behind this token, so the token stops working immediately.
+`200` with `{ "success": true }`, or `401` if the token is missing, invalid or
+already revoked. Call it when the user signs out of the desktop app, then
+discard the stored token.
 
 ## `GET /api/v1/me`
 

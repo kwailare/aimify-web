@@ -19,6 +19,8 @@ export type ActivityRow = {
   createdAt: Date;
   actorName: string | null;
   actorEmail: string | null;
+  ip: string | null;
+  device: string | null;
   organizationName: string | null;
   module: string;
   label: string;
@@ -61,6 +63,8 @@ export function AdminActivityTable({
       row.details,
       row.actorName ?? "",
       row.actorEmail ?? "",
+      row.ip ?? "",
+      row.device ?? "",
       row.organizationName ?? "",
     ].some((value) => value.toLowerCase().includes(query));
   });
@@ -289,6 +293,11 @@ export function AdminActivityTable({
                         <span>{row.actorName ?? "System"}</span>
                         {row.actorEmail && (
                           <span className="admin-subline">{row.actorEmail}</span>
+                        )}
+                        {(row.ip || row.device) && (
+                          <span className="admin-subline">
+                            {[row.ip, row.device].filter(Boolean).join(" · ")}
+                          </span>
                         )}
                       </span>
                     </td>

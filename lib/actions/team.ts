@@ -14,6 +14,7 @@ import {
   userHasOrganization,
 } from "@/lib/invitations";
 import { getOrgContext } from "@/lib/org";
+import { revokeAllSessions } from "@/lib/sessions";
 import { checkPlanLimit } from "@/lib/plans";
 import {
   assignableRoles,
@@ -339,6 +340,7 @@ export async function removeMemberAction(userId: string) {
   }
 
   await db.delete(memberships).where(eq(memberships.id, member.id));
+  await revokeAllSessions(member.userId);
 
   await logAudit({
     organizationId: manager.organization.id,

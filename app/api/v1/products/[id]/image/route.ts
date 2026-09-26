@@ -27,7 +27,7 @@ async function findProduct(organizationId: string, id: string) {
 }
 
 export async function POST(request: Request, { params }: Params) {
-  const context = await guardApi(request);
+  const context = await guardApi(request, "products.write");
 
   if (context instanceof NextResponse) return context;
 
@@ -123,7 +123,7 @@ export async function POST(request: Request, { params }: Params) {
 }
 
 export async function DELETE(request: Request, { params }: Params) {
-  const context = await guardApi(request);
+  const context = await guardApi(request, "products.write");
 
   if (context instanceof NextResponse) return context;
 

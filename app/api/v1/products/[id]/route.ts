@@ -38,7 +38,7 @@ export async function GET(request: Request, { params }: Params) {
 }
 
 export async function PATCH(request: Request, { params }: Params) {
-  const context = await guardApi(request);
+  const context = await guardApi(request, "products.write");
 
   if (context instanceof NextResponse) return context;
 
@@ -133,7 +133,7 @@ export async function PATCH(request: Request, { params }: Params) {
 }
 
 export async function DELETE(request: Request, { params }: Params) {
-  const context = await guardApi(request);
+  const context = await guardApi(request, "products.archive");
 
   if (context instanceof NextResponse) return context;
 

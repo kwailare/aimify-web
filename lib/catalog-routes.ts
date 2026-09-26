@@ -31,7 +31,7 @@ export async function listOptions(request: Request, kind: CatalogKind) {
 }
 
 export async function createOption(request: Request, kind: CatalogKind) {
-  const context = await guardApi(request);
+  const context = await guardApi(request, "catalog.write");
 
   if (context instanceof NextResponse) return context;
 
@@ -77,7 +77,7 @@ export async function deleteOption(
   kind: CatalogKind,
   id: string,
 ) {
-  const context = await guardApi(request);
+  const context = await guardApi(request, "catalog.write");
 
   if (context instanceof NextResponse) return context;
 

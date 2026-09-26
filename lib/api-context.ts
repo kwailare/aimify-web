@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { verifyApiToken } from "@/lib/api-auth";
 import { getOrgContextForUser } from "@/lib/org";
+import { can, type Permission } from "@/lib/permissions";
 import { blockedMessage, hasProductAccess } from "@/lib/subscription";
 
 export type ApiOrgContext = {
@@ -33,8 +34,28 @@ export async function getApiOrgContext(
   };
 }
 
+export function denyIfForbidden(
+  context: ApiOrgContext,
+  permission: Permission,
+): NextResponse | null {
+  if (can(context.role, permission)) {
+    return null;
+  }
+
+  return NextResponse.json(
+    {
+      error: `Your role (${context.role}) isn't allowed to do this.`,
+      code: "forbidden_role",
+      role: context.role,
+      permission,
+    },
+    { status: 403 },
+  );
+}
+
 export async function guardApi(
   request: Request,
+  permission?: Permission,
 ): Promise<ApiOrgContext | NextResponse> {
   const context = await getApiOrgContext(request);
 
@@ -51,6 +72,12 @@ export async function guardApi(
       },
       { status: context.subscriptionStatus === "suspended" ? 403 : 402 },
     );
+  }
+
+  if (permission) {
+    const denied = denyIfForbidden(context, permission);
+
+    if (denied) return denied;
   }
 
   return context;

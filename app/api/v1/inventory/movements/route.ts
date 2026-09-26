@@ -2,7 +2,8 @@ import { NextResponse, after } from "next/server";
 import { and, desc, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { products, stockMovements } from "@/db/schema";
-import { guardApi } from "@/lib/api-context";
+import { denyIfForbidden, guardApi } from "@/lib/api-context";
+import { movementPermission } from "@/lib/permissions";
 import { logAudit } from "@/lib/audit";
 import { detectStockAlert, notifyStockAlert } from "@/lib/stock-alerts";
 import { isUuid } from "@/lib/validation";
@@ -71,6 +72,10 @@ export async function POST(request: Request) {
       { status: 400 },
     );
   }
+
+  const denied = denyIfForbidden(context, movementPermission(type));
+
+  if (denied) return denied;
 
   if (!isUuid(productId) || !isUuid(warehouseId)) {
     return NextResponse.json(

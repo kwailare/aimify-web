@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { verifyApiToken } from "@/lib/api-auth";
 import { getOrgContextForUser } from "@/lib/org";
+import { permissionsFor } from "@/lib/permissions";
 
 export async function GET(request: Request) {
   const userId = await verifyApiToken(request);
@@ -44,5 +45,6 @@ export async function GET(request: Request) {
         }
       : null,
     role: context.membership?.role ?? null,
+    permissions: permissionsFor(context.membership?.role),
   });
 }

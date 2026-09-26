@@ -50,6 +50,38 @@ their status from `/me`.
 Trials end automatically: the first request after `trialEndsAt` passes flips
 the status from `trial` to `expired`, so `/me` always reports the real value.
 
+## Roles and permissions
+
+Each person has a role, set on the website's Team page and returned by `/me`.
+After the subscription check, write endpoints check the role. A role that isn't
+allowed gets `403`:
+
+```json
+{
+  "error": "Your role (Sales Staff) isn't allowed to do this.",
+  "code": "forbidden_role",
+  "role": "Sales Staff",
+  "permission": "products.write"
+}
+```
+
+`/me` also returns `permissions`, the list the signed-in role holds, so the
+desktop app can hide or disable controls instead of waiting for a `403`.
+Reading (products, warehouses, categories, units, movements, alerts) is open
+to every role.
+
+| Permission | Covers | Roles |
+|---|---|---|
+| `products.write` | Create and edit products, upload or remove product images | Owner, Administrator, Warehouse Manager, Inventory Staff |
+| `products.archive` | Archive a product | Owner, Administrator, Warehouse Manager |
+| `catalog.write` | Add or delete categories and units | Owner, Administrator, Warehouse Manager, Inventory Staff |
+| `warehouses.manage` | Create, edit and disable warehouses | Owner, Administrator, Warehouse Manager |
+| `stock.out` | Record a `stock_out` movement | The roles above plus Sales Staff |
+| `stock.adjust` | Record `stock_in`, `adjustment` and `count` movements | Owner, Administrator, Warehouse Manager, Inventory Staff |
+
+Accountant / Finance is read-only. The role rules live in
+`lib/permissions.ts` in `aimify-web`.
+
 ## Base URL
 
 | Environment | URL |
@@ -128,7 +160,15 @@ Success — `200`:
     "subscriptionStatus": "trial",
     "trialEndsAt": "2026-09-26T00:00:00.000Z"
   },
-  "role": "Owner"
+  "role": "Owner",
+  "permissions": [
+    "products.write",
+    "products.archive",
+    "catalog.write",
+    "warehouses.manage",
+    "stock.out",
+    "stock.adjust"
+  ]
 }
 ```
 

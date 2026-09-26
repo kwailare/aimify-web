@@ -97,7 +97,18 @@ export function ContactForm() {
             name="message"
             rows={5}
             placeholder="Tell us a bit about your business and what you need."
+            maxLength={5000}
             required
+          />
+        </div>
+        <div className="contact-honeypot" aria-hidden="true">
+          <label htmlFor="contact-website">Leave this field empty</label>
+          <input
+            id="contact-website"
+            name="website"
+            type="text"
+            tabIndex={-1}
+            autoComplete="off"
           />
         </div>
         {error && <p className="auth-error">{error}</p>}

@@ -13,6 +13,7 @@ import {
   warehouses,
 } from "@/db/schema";
 import { effectiveStatus } from "@/lib/subscription";
+import { getTicketCounts } from "@/lib/support";
 
 export async function getAdminContext() {
   const session = await auth();
@@ -342,6 +343,7 @@ export async function getOverviewData() {
     if (i !== undefined) trend[i].organizations += 1;
   }
 
+  const ticketCounts = await getTicketCounts();
   const activeCount = statusCounts.active ?? 0;
   const pastDue = statusCounts.past_due ?? 0;
 
@@ -365,6 +367,7 @@ export async function getOverviewData() {
       usersToday: signupsToday.value,
     },
     statusCounts,
+    ticketCounts,
     payingOrganizations: activeCount,
     pastDueOrganizations: pastDue,
     estimatedMonthlyRevenue,

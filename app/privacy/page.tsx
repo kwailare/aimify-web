@@ -61,6 +61,11 @@ export default function PrivacyPage() {
                 address and device it came from.
               </li>
               <li>
+                <strong>Support messages:</strong> what you send us through the
+                contact form or your dashboard, your name and email, and our
+                replies. We keep them so we can follow up and improve support.
+              </li>
+              <li>
                 <strong>Two-factor data</strong>, if you turn it on: an
                 encrypted authenticator key and hashed one-time backup codes.
                 We can&apos;t read your backup codes after you create them.

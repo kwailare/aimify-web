@@ -1,37 +1,42 @@
 "use server";
 
-import { Resend } from "resend";
+import { headers } from "next/headers";
+import { createTicket, validateTicketInput } from "@/lib/support";
+import { getClientIp, isRateLimited, recordLoginAttempt } from "@/lib/rate-limit";
 
-const CONTACT_INBOX = "info@aimify.app";
-const FROM_ADDRESS = "Aimify Contact Form <contact@aimify.app>";
 const GENERIC_ERROR =
   "Message could not be sent. Please try again, or email us directly at info@aimify.app.";
 
 export async function sendContactMessageAction(formData: FormData) {
+  if (String(formData.get("website") ?? "").trim()) {
+    return { success: true };
+  }
+
   const name = String(formData.get("name") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim();
   const subject = String(formData.get("subject") ?? "").trim();
   const message = String(formData.get("message") ?? "").trim();
 
-  if (!name || !email || !subject || !message) {
-    return { error: "All fields are required." };
+  const invalid = validateTicketInput({ name, email, subject, message });
+
+  if (invalid) {
+    return { error: invalid };
   }
 
-  if (!process.env.RESEND_API_KEY) {
-    return { error: GENERIC_ERROR };
+  const ip = getClientIp(await headers());
+  const identifiers = [`contact-ip:${ip}`, `contact-email:${email.toLowerCase()}`];
+
+  if (await isRateLimited(identifiers)) {
+    return {
+      error: "You've sent several messages recently. Please wait a few minutes and try again.",
+    };
   }
 
-  const resend = new Resend(process.env.RESEND_API_KEY);
+  await recordLoginAttempt(identifiers, false);
 
-  const { error } = await resend.emails.send({
-    from: FROM_ADDRESS,
-    to: CONTACT_INBOX,
-    replyTo: email,
-    subject: `[Contact form] ${subject}`,
-    text: `From: ${name} <${email}>\n\n${message}`,
-  });
-
-  if (error) {
+  try {
+    await createTicket({ name, email, subject, message, source: "contact_form" });
+  } catch {
     return { error: GENERIC_ERROR };
   }
 

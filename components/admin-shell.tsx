@@ -9,10 +9,12 @@ import {
   History,
   Layers,
   LayoutDashboard,
+  LifeBuoy,
   LogOut,
   Menu,
   Moon,
   Sun,
+  TrendingUp,
   Users,
   X,
 } from "lucide-react";
@@ -25,6 +27,8 @@ const navItems = [
   { href: "/admin/organizations", label: "Organizations", icon: Building2 },
   { href: "/admin/users", label: "Users", icon: Users },
   { href: "/admin/plans", label: "Plans", icon: Layers },
+  { href: "/admin/insights", label: "Insights", icon: TrendingUp },
+  { href: "/admin/support", label: "Support", icon: LifeBuoy },
   { href: "/admin/activity", label: "Activity", icon: History },
 ];
 

@@ -8,6 +8,7 @@ export async function sendEmail(message: {
   subject: string;
   text: string;
   html?: string;
+  replyTo?: string;
 }) {
   const apiKey = process.env.RESEND_API_KEY;
 
@@ -19,7 +20,7 @@ export async function sendEmail(message: {
   try {
     const { error } = await new Resend(apiKey).emails.send({
       from: FROM_ADDRESS,
-      replyTo: REPLY_TO,
+      replyTo: message.replyTo ?? REPLY_TO,
       to: message.to,
       subject: message.subject,
       text: message.text,

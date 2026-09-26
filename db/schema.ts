@@ -299,3 +299,41 @@ export const twoFactorBackupCodes = pgTable(
   },
   (table) => [index("two_factor_backup_codes_user_idx").on(table.userId)],
 );
+
+export const supportTickets = pgTable(
+  "support_tickets",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    reference: text().notNull().unique(),
+    name: text().notNull(),
+    email: text().notNull(),
+    subject: text().notNull(),
+    status: text().notNull().default("open"),
+    source: text().notNull().default("contact_form"),
+    userId: uuid().references(() => users.id),
+    organizationId: uuid().references(() => organizations.id),
+    createdAt: timestamp().defaultNow().notNull(),
+    updatedAt: timestamp().defaultNow().notNull(),
+    resolvedAt: timestamp(),
+  },
+  (table) => [
+    index("support_tickets_status_idx").on(table.status, table.updatedAt),
+    index("support_tickets_user_idx").on(table.userId),
+  ],
+);
+
+export const supportMessages = pgTable(
+  "support_messages",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    ticketId: uuid()
+      .notNull()
+      .references(() => supportTickets.id),
+    kind: text().notNull(),
+    body: text().notNull(),
+    authorUserId: uuid().references(() => users.id),
+    emailed: boolean().notNull().default(false),
+    createdAt: timestamp().defaultNow().notNull(),
+  },
+  (table) => [index("support_messages_ticket_idx").on(table.ticketId, table.createdAt)],
+);

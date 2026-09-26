@@ -4338,3 +4338,72 @@ select optgroup {
   border-color: rgb(255 255 255 / 14%);
   background: rgb(255 255 255 / 5%);
 }
+
+.contact-honeypot {
+  position: absolute;
+  left: -10000px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+.support-body {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 0.88rem;
+}
+
+.support-thread {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.support-thread-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.support-thread-body {
+  display: grid;
+  gap: 0.7rem;
+  border-left: 3px solid rgb(216 139 0 / 30%);
+  padding-left: 0.9rem;
+}
+
+.support-message {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.support-message.is-reply {
+  border-radius: 0.6rem;
+  background: rgb(242 178 51 / 10%);
+  padding: 0.5rem 0.7rem;
+}
+
+.insight-bars {
+  display: grid;
+  gap: 3px;
+  min-width: 8rem;
+}
+
+.insight-bar {
+  display: block;
+  min-width: 2px;
+  height: 0.5rem;
+  border-radius: 999px;
+}
+
+.insight-bar.is-signups {
+  background: var(--aimify-gold);
+}
+
+.insight-bar.is-activated {
+  background: #2f9e5b;
+}
+
+.admin-legend-dot.is-activated {
+  background: #2f9e5b;
+}

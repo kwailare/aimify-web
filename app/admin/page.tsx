@@ -50,6 +50,14 @@ export default async function AdminOverviewPage() {
     });
   }
 
+  if (data.ticketCounts.open > 0) {
+    attention.unshift({
+      label: "Support messages waiting for a reply",
+      value: data.ticketCounts.open,
+      href: "/admin/support",
+    });
+  }
+
   if (data.pastDueOrganizations > 0) {
     attention.push({
       label: "Organizations past due",

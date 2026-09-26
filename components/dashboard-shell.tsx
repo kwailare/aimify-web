@@ -11,6 +11,7 @@ import {
   Download,
   History,
   LayoutDashboard,
+  LifeBuoy,
   LogOut,
   Menu,
   Moon,
@@ -32,6 +33,7 @@ const navItems = [
   { href: "/dashboard/activity", label: "Activity", icon: History },
   { href: "/dashboard/billing", label: "Billing", icon: CreditCard },
   { href: "/dashboard/download", label: "Download", icon: Download },
+  { href: "/dashboard/support", label: "Support", icon: LifeBuoy },
   { href: "/dashboard/settings", label: "Settings", icon: Settings },
 ];
 

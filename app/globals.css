@@ -4251,3 +4251,49 @@ textarea.auth-input {
 .dash-fieldset:disabled {
   opacity: 0.65;
 }
+
+select option,
+select optgroup {
+  background-color: #ffffff;
+  color: #242424;
+}
+
+.dark select {
+  color-scheme: dark;
+}
+
+.dark select option,
+.dark select optgroup {
+  background-color: #242424;
+  color: #f8f7f3;
+}
+
+.logo-file::file-selector-button {
+  margin-right: 0.9rem;
+  border: 0;
+  border-radius: 0.6rem;
+  background: var(--aimify-gold);
+  padding: 0.55rem 1rem;
+  color: #ffffff;
+  font-family: var(--font-sans);
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background-color 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.logo-file:hover::file-selector-button {
+  background: #b87400;
+  box-shadow: 0 6px 14px rgb(216 139 0 / 32%);
+}
+
+.dark .logo-file::file-selector-button {
+  background: #f2b233;
+  color: #171717;
+}
+
+.dark .logo-file:hover::file-selector-button {
+  background: #ffc857;
+}

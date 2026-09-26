@@ -1,4 +1,4 @@
-import { desc, eq } from "drizzle-orm";
+import { count, desc, eq, min, or } from "drizzle-orm";
 import { db } from "@/db";
 import { auditLogs, organizations, users } from "@/db/schema";
 
@@ -22,6 +22,10 @@ const actionLabels: Record<string, string> = {
   "user.password_changed": "Password changed",
   "user.email_verified": "Email address confirmed",
   "admin.email_verified": "Email confirmed by an admin",
+  "admin.trial_extended": "Trial extended by an admin",
+  "admin.subscription_activated": "Subscription activated by an admin",
+  "admin.verification_email_sent": "Confirmation link sent by an admin",
+  "admin.activity_cleared": "Activity history cleared",
   "user.password_reset_completed": "Password reset by email link",
   "product.created": "Product created",
   "product.updated": "Product updated",
@@ -94,3 +98,89 @@ export async function getAllAuditLogs(limit = 50) {
     .orderBy(desc(auditLogs.createdAt))
     .limit(limit);
 }
+
+const SENSITIVE_KEY = /password|token|secret|hash/i;
+
+function formatAuditValue(value: unknown): string {
+  if (value === null || value === undefined) return "empty";
+  if (typeof value === "string") {
+    return value.length > 60 ? `${value.slice(0, 57)}...` : value;
+  }
+  if (typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+  const json = JSON.stringify(value);
+  return json.length > 60 ? `${json.slice(0, 57)}...` : json;
+}
+
+export function describeAuditDetails(
+  previousValue: unknown,
+  newValue: unknown,
+): string {
+  if (!newValue || typeof newValue !== "object") return "";
+
+  const next = newValue as Record<string, unknown>;
+  const previous =
+    previousValue && typeof previousValue === "object"
+      ? (previousValue as Record<string, unknown>)
+      : null;
+
+  const parts = Object.entries(next).map(([key, value]) => {
+    if (SENSITIVE_KEY.test(key)) return `${key}: hidden`;
+    if (previous && key in previous) {
+      return `${key}: ${formatAuditValue(previous[key])} → ${formatAuditValue(value)}`;
+    }
+    return `${key}: ${formatAuditValue(value)}`;
+  });
+
+  const text = parts.join("; ");
+  return text.length > 220 ? `${text.slice(0, 217)}...` : text;
+}
+
+export async function getAuditStats() {
+  const [row] = await db
+    .select({ total: count(), oldest: min(auditLogs.createdAt) })
+    .from(auditLogs);
+
+  return { total: row?.total ?? 0, oldest: row?.oldest ?? null };
+}
+
+export async function getRecentActivity(
+  target: { organizationId: string } | { userId: string },
+  limit = 10,
+) {
+  const condition =
+    "organizationId" in target
+      ? eq(auditLogs.organizationId, target.organizationId)
+      : or(
+          eq(auditLogs.userId, target.userId),
+          eq(auditLogs.recordId, target.userId),
+        );
+
+  const rows = await db
+    .select({
+      id: auditLogs.id,
+      action: auditLogs.action,
+      previousValue: auditLogs.previousValue,
+      newValue: auditLogs.newValue,
+      createdAt: auditLogs.createdAt,
+      actorName: users.name,
+    })
+    .from(auditLogs)
+    .leftJoin(users, eq(auditLogs.userId, users.id))
+    .where(condition)
+    .orderBy(desc(auditLogs.createdAt))
+    .limit(limit);
+
+  return rows.map((row) => ({
+    id: row.id,
+    label: describeAuditAction(row.action),
+    details: describeAuditDetails(row.previousValue, row.newValue),
+    actorName: row.actorName ?? "System",
+    createdAt: row.createdAt.toISOString(),
+  }));
+}
+
+export type RecentActivityItem = Awaited<
+  ReturnType<typeof getRecentActivity>
+>[number];

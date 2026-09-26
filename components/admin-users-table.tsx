@@ -1,16 +1,40 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { Fragment, useState, type FormEvent } from "react";
 import { Check, Copy, X } from "lucide-react";
-import { resetUserPasswordAction } from "@/lib/actions/admin";
+import { AdminActivityList } from "@/components/admin-activity-list";
+import { AdminSendVerificationButton } from "@/components/admin-send-verification-button";
 import { AdminVerifyEmailButton } from "@/components/admin-verify-email-button";
-import { formatDate } from "@/lib/format-date";
+import { resetUserPasswordAction } from "@/lib/actions/admin";
+import { formatDate, formatDateTime } from "@/lib/format-date";
+import {
+  describeSubscriptionStatus,
+  effectiveStatus,
+  hasProductAccess,
+} from "@/lib/subscription";
 import type { AdminUser } from "@/lib/admin";
 
 type ResetMode = "generate" | "manual";
 
+function DetailItem({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="admin-detail-item">
+      <dt>{label}</dt>
+      <dd suppressHydrationWarning>{children}</dd>
+    </div>
+  );
+}
+
 export function AdminUsersTable({ users }: { users: AdminUser[] }) {
   const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState("all");
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [resetTarget, setResetTarget] = useState<AdminUser | null>(null);
   const [mode, setMode] = useState<ResetMode>("generate");
   const [isPending, setIsPending] = useState(false);
@@ -23,14 +47,22 @@ export function AdminUsersTable({ users }: { users: AdminUser[] }) {
   const [copied, setCopied] = useState(false);
 
   const query = search.trim().toLowerCase();
-  const filtered = query
-    ? users.filter(
-        (user) =>
-          user.name.toLowerCase().includes(query) ||
-          user.email.toLowerCase().includes(query) ||
-          (user.organizationName ?? "").toLowerCase().includes(query),
-      )
-    : users;
+
+  const filtered = users.filter((user) => {
+    if (filter === "unverified" && user.emailVerifiedAt) return false;
+    if (filter === "admins" && !user.isAdmin) return false;
+    if (filter === "no_org" && user.organizationId) return false;
+    if (filter === "never_signed_in" && user.lastSignInAt) return false;
+
+    if (!query) return true;
+
+    return [
+      user.name,
+      user.email,
+      user.phone ?? "",
+      user.organizationName ?? "",
+    ].some((value) => value.toLowerCase().includes(query));
+  });
 
   const openResetPanel = (user: AdminUser) => {
     setResetTarget(user);
@@ -91,25 +123,43 @@ export function AdminUsersTable({ users }: { users: AdminUser[] }) {
       await navigator.clipboard.writeText(revealed.password);
       setCopied(true);
     } catch {
-      // Clipboard access can be denied by the browser; the password is
-      // still visible on screen for the admin to copy manually.
+      setCopied(false);
     }
   };
 
   return (
     <div className="dash-stack">
-      <div className="auth-field">
-        <label className="auth-label" htmlFor="user-search">
-          Search
-        </label>
-        <input
-          className="auth-input"
-          id="user-search"
-          type="text"
-          placeholder="Search by name, email or organization"
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-        />
+      <div className="admin-toolbar">
+        <div className="auth-field">
+          <label className="auth-label" htmlFor="user-search">
+            Search
+          </label>
+          <input
+            className="auth-input"
+            id="user-search"
+            type="text"
+            placeholder="Search by name, email, phone or organization"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+          />
+        </div>
+        <div className="auth-field admin-toolbar-filter">
+          <label className="auth-label" htmlFor="user-filter">
+            Show
+          </label>
+          <select
+            className="auth-input"
+            id="user-filter"
+            value={filter}
+            onChange={(event) => setFilter(event.target.value)}
+          >
+            <option value="all">All users</option>
+            <option value="unverified">Unverified email</option>
+            <option value="admins">Admins</option>
+            <option value="no_org">No organization</option>
+            <option value="never_signed_in">Never signed in</option>
+          </select>
+        </div>
       </div>
 
       {resetTarget && (
@@ -234,54 +284,182 @@ export function AdminUsersTable({ users }: { users: AdminUser[] }) {
 
       <div className="dash-card">
         {filtered.length === 0 ? (
-          <p className="dash-card-note">No users match your search.</p>
+          <p className="dash-card-note">No users match.</p>
         ) : (
           <div className="dash-table-wrap">
             <table className="dash-table">
               <thead>
                 <tr>
-                  <th>Name</th>
-                  <th>Email</th>
+                  <th>User</th>
+                  <th>Phone</th>
                   <th>Organization</th>
+                  <th>Email status</th>
+                  <th>Last sign-in</th>
                   <th>Joined</th>
-                  <th>Action</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((user) => (
-                  <tr key={user.id}>
-                    <td>
-                      <span className="dash-user-name">
-                        {user.name}
-                        {user.isAdmin && (
-                          <span className="admin-badge">Admin</span>
-                        )}
-                        {!user.emailVerifiedAt && (
-                          <span className="admin-badge">Unverified</span>
-                        )}
-                      </span>
-                    </td>
-                    <td>{user.email}</td>
-                    <td>
-                      {user.organizationName
-                        ? `${user.organizationName} (${user.role})`
-                        : "—"}
-                    </td>
-                    <td>{formatDate(user.createdAt)}</td>
-                    <td>
-                      <button
-                        className="dash-table-action is-danger"
-                        type="button"
-                        onClick={() => openResetPanel(user)}
-                      >
-                        Reset password
-                      </button>
-                      {!user.emailVerifiedAt && (
-                        <AdminVerifyEmailButton userId={user.id} />
+                {filtered.map((user) => {
+                  const isOpen = expandedId === user.id;
+                  const orgStatus = user.organizationStatus
+                    ? effectiveStatus(
+                        user.organizationStatus,
+                        user.organizationTrialEndsAt,
+                      )
+                    : null;
+
+                  return (
+                    <Fragment key={user.id}>
+                      <tr>
+                        <td>
+                          <span className="admin-stack">
+                            <span className="dash-user-name">
+                              {user.name}
+                              {user.isAdmin && (
+                                <span className="admin-badge">Admin</span>
+                              )}
+                            </span>
+                            <span className="admin-subline">{user.email}</span>
+                          </span>
+                        </td>
+                        <td>{user.phone ?? "—"}</td>
+                        <td>
+                          {user.organizationName ? (
+                            <span className="admin-stack">
+                              <span>{user.organizationName}</span>
+                              <span className="admin-subline">
+                                {user.role}
+                                {orgStatus
+                                  ? ` · ${describeSubscriptionStatus(orgStatus)}`
+                                  : ""}
+                              </span>
+                            </span>
+                          ) : (
+                            "—"
+                          )}
+                        </td>
+                        <td>
+                          {user.emailVerifiedAt ? (
+                            <span className="admin-stack">
+                              <span>Verified</span>
+                              <span className="admin-subline">
+                                {formatDate(user.emailVerifiedAt)}
+                              </span>
+                            </span>
+                          ) : (
+                            <span className="admin-badge">Unverified</span>
+                          )}
+                        </td>
+                        <td suppressHydrationWarning>
+                          {user.lastSignInAt ? (
+                            <span className="admin-stack">
+                              <span>{formatDateTime(user.lastSignInAt)}</span>
+                              <span className="admin-subline">
+                                {user.signInCount} sign-in
+                                {user.signInCount === 1 ? "" : "s"}
+                              </span>
+                            </span>
+                          ) : (
+                            "Never"
+                          )}
+                        </td>
+                        <td>{formatDate(user.createdAt)}</td>
+                        <td>
+                          <span className="admin-stack">
+                            <button
+                              className="dash-table-action"
+                              type="button"
+                              aria-expanded={isOpen}
+                              onClick={() =>
+                                setExpandedId(isOpen ? null : user.id)
+                              }
+                            >
+                              {isOpen ? "Hide details" : "View details"}
+                            </button>
+                            <button
+                              className="dash-table-action is-danger"
+                              type="button"
+                              onClick={() => openResetPanel(user)}
+                            >
+                              Reset password
+                            </button>
+                            {!user.emailVerifiedAt && (
+                              <AdminVerifyEmailButton userId={user.id} />
+                            )}
+                          </span>
+                        </td>
+                      </tr>
+                      {isOpen && (
+                        <tr className="admin-detail-row">
+                          <td colSpan={7}>
+                            <div className="admin-detail">
+                              <dl className="admin-detail-grid">
+                                <DetailItem label="Name">{user.name}</DetailItem>
+                                <DetailItem label="Email">{user.email}</DetailItem>
+                                <DetailItem label="Phone">
+                                  {user.phone ?? "—"}
+                                </DetailItem>
+                                <DetailItem label="Email status">
+                                  {user.emailVerifiedAt
+                                    ? `Verified ${formatDateTime(user.emailVerifiedAt)}`
+                                    : "Not verified yet"}
+                                </DetailItem>
+                                <DetailItem label="Organization">
+                                  {user.organizationName
+                                    ? `${user.organizationName} (${user.role})`
+                                    : "Not part of an organization"}
+                                </DetailItem>
+                                <DetailItem label="Subscription">
+                                  {orgStatus
+                                    ? `${describeSubscriptionStatus(orgStatus)} · desktop app ${hasProductAccess(orgStatus) ? "allowed" : "blocked"}`
+                                    : "—"}
+                                </DetailItem>
+                                <DetailItem label="Joined">
+                                  {formatDateTime(user.createdAt)}
+                                </DetailItem>
+                                <DetailItem label="Last sign-in">
+                                  {user.lastSignInAt
+                                    ? `${formatDateTime(user.lastSignInAt)} (${user.signInCount} total)`
+                                    : "Never"}
+                                </DetailItem>
+                                <DetailItem label="Platform role">
+                                  {user.isAdmin ? "Admin" : "Standard user"}
+                                </DetailItem>
+                                <DetailItem label="User ID">{user.id}</DetailItem>
+                              </dl>
+
+                              <div>
+                                <p className="admin-detail-title">
+                                  Recent activity
+                                </p>
+                                <AdminActivityList kind="user" id={user.id} />
+                              </div>
+
+                              <div className="admin-action-bar">
+                                <button
+                                  className="dash-table-action is-danger"
+                                  type="button"
+                                  onClick={() => openResetPanel(user)}
+                                >
+                                  Reset password
+                                </button>
+                                {!user.emailVerifiedAt && (
+                                  <>
+                                    <AdminVerifyEmailButton userId={user.id} />
+                                    <AdminSendVerificationButton
+                                      userId={user.id}
+                                    />
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
                       )}
-                    </td>
-                  </tr>
-                ))}
+                    </Fragment>
+                  );
+                })}
               </tbody>
             </table>
           </div>

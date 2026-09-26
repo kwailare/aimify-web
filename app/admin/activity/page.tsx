@@ -1,8 +1,40 @@
-import { describeAuditAction, getAllAuditLogs } from "@/lib/audit";
-import { formatDateTime } from "@/lib/format-date";
+import { AdminActivityTable } from "@/components/admin-activity-table";
+import {
+  describeAuditAction,
+  describeAuditDetails,
+  getAllAuditLogs,
+  getAuditStats,
+} from "@/lib/audit";
 
-export default async function AdminActivityPage() {
-  const logs = await getAllAuditLogs();
+const LIMITS = [100, 250, 500, 1000];
+
+export default async function AdminActivityPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ limit?: string }>;
+}) {
+  const { limit: rawLimit } = await searchParams;
+  const requested = Number(rawLimit);
+  const limit = LIMITS.includes(requested) ? requested : LIMITS[0];
+
+  const [logs, stats] = await Promise.all([
+    getAllAuditLogs(limit),
+    getAuditStats(),
+  ]);
+
+  const rows = logs.map((log) => ({
+    id: log.id,
+    createdAt: log.createdAt,
+    actorName: log.actorName,
+    actorEmail: log.actorEmail,
+    organizationName: log.organizationName,
+    module: log.module,
+    label: describeAuditAction(log.action),
+    details: describeAuditDetails(log.previousValue, log.newValue),
+  }));
+
+  const nextLimit =
+    stats.total > logs.length ? (LIMITS.find((value) => value > limit) ?? null) : null;
 
   return (
     <div className="dash-stack">
@@ -10,38 +42,17 @@ export default async function AdminActivityPage() {
         <p className="dash-page-eyebrow">Activity</p>
         <h1 className="dash-page-title">Platform-wide audit trail</h1>
         <p className="dash-page-subtitle">
-          Every logged event across every organization, most recent first.
+          Every logged event across every organization, most recent first. Use
+          Clear history to free up space; clearing is itself recorded.
         </p>
       </div>
 
-      <div className="dash-card">
-        {logs.length === 0 ? (
-          <p className="dash-card-note">No activity recorded yet.</p>
-        ) : (
-          <div className="dash-table-wrap">
-            <table className="dash-table">
-              <thead>
-                <tr>
-                  <th>When</th>
-                  <th>Who</th>
-                  <th>Organization</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {logs.map((log) => (
-                  <tr key={log.id}>
-                    <td>{formatDateTime(log.createdAt)}</td>
-                    <td>{log.actorName ?? "System"}</td>
-                    <td>{log.organizationName ?? "—"}</td>
-                    <td>{describeAuditAction(log.action)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+      <AdminActivityTable
+        rows={rows}
+        total={stats.total}
+        oldest={stats.oldest}
+        nextLimit={nextLimit}
+      />
     </div>
   );
 }

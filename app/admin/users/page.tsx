@@ -11,9 +11,9 @@ export default async function AdminUsersPage() {
         <h1 className="dash-page-title">All users</h1>
         <p className="dash-page-subtitle">
           {users.length} account{users.length === 1 ? "" : "s"} across every
-          organization. Resetting a password generates a new one-time
-          temporary password — it&apos;s never stored or logged in plain
-          text.
+          organization. Open a user to see their full details and recent
+          activity. Resetting a password generates a one-time temporary
+          password that is never stored or logged in plain text.
         </p>
       </div>
 

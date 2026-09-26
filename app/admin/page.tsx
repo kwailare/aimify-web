@@ -75,7 +75,7 @@ export default async function AdminOverviewPage() {
   }
 
   return (
-    <div className="dash-stack">
+    <div className="dash-stack dash-stack--wide">
       <div>
         <p className="dash-page-eyebrow">Overview</p>
         <h1 className="dash-page-title">Platform overview</h1>
@@ -328,6 +328,67 @@ export default async function AdminOverviewPage() {
               })}
             </ul>
           )}
+        </div>
+      </div>
+
+      <div className="admin-overview-split">
+        <div className="dash-card">
+          <div className="admin-stat-row">
+            <p className="dash-card-label">Newest users</p>
+            <Link className="admin-subline" href="/admin/users">
+              View all
+            </Link>
+          </div>
+          <ul className="admin-feed">
+            {data.newestUsers.map((user) => (
+              <li key={user.id}>
+                <span className="admin-stack">
+                  <span>{user.name}</span>
+                  <span className="admin-subline">
+                    {user.email}
+                    {user.organizationName ? ` · ${user.organizationName}` : ""}
+                  </span>
+                </span>
+                <span className="admin-stack admin-stack--end">
+                  <span className="admin-subline">
+                    {formatDate(user.createdAt)}
+                  </span>
+                  <span className="admin-subline">
+                    {user.emailVerifiedAt ? "Confirmed" : "Unconfirmed"}
+                  </span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="dash-card">
+          <p className="dash-card-label">Most active organizations, 30 days</p>
+          {data.activeOrgs.length === 0 ? (
+            <p className="dash-card-note">
+              No organization activity has been recorded in the last 30 days.
+            </p>
+          ) : (
+            <div className="admin-bars">
+              {data.activeOrgs.map((org) => (
+                <div className="admin-bar-row admin-bar-row--wide" key={org.id}>
+                  <span>{org.name}</span>
+                  <div className="admin-bar-track">
+                    <div
+                      className="admin-bar-fill"
+                      style={{
+                        width: `${(org.movements / data.activeOrgs[0].movements) * 100}%`,
+                      }}
+                    />
+                  </div>
+                  <strong>{org.movements}</strong>
+                </div>
+              ))}
+            </div>
+          )}
+          <p className="dash-card-note" style={{ marginTop: "1rem" }}>
+            Ranked by logged events such as settings changes and stock activity.
+          </p>
         </div>
       </div>
     </div>

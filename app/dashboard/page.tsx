@@ -91,10 +91,14 @@ export default async function DashboardOverviewPage() {
     ...data.trend.map((day) => Math.max(day.incoming, day.outgoing)),
   );
   const categoryMax = Math.max(1, ...data.categories.map((c) => c.products));
+  const healthyCount = Math.max(
+    data.products - data.lowStockCount - data.outOfStockCount,
+    0,
+  );
   const attentionCount = data.lowStockCount + data.outOfStockCount;
 
   return (
-    <div className="dash-stack">
+    <div className="dash-stack dash-stack--wide">
       <div>
         <p className="dash-page-eyebrow">Overview</p>
         <h1 className="dash-page-title">Welcome back, {firstName}</h1>
@@ -207,6 +211,29 @@ export default async function DashboardOverviewPage() {
               ))}
             </ul>
           )}
+          {data.products > 0 && (
+            <>
+              <p className="admin-detail-title">Stock health</p>
+              <div className="admin-bars">
+                {[
+                  { label: "Healthy", value: healthyCount, tone: "is-active" },
+                  { label: "Low", value: data.lowStockCount, tone: "is-expired" },
+                  { label: "Out", value: data.outOfStockCount, tone: "is-suspended" },
+                ].map((row) => (
+                  <div className="admin-bar-row" key={row.label}>
+                    <span>{row.label}</span>
+                    <div className="admin-bar-track">
+                      <div
+                        className={`admin-bar-fill ${row.tone}`}
+                        style={{ width: `${(row.value / data.products) * 100}%` }}
+                      />
+                    </div>
+                    <strong>{row.value}</strong>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
         </div>
 
         <div className="dash-card">
@@ -301,6 +328,7 @@ export default async function DashboardOverviewPage() {
           )}
         </div>
 
+        <div className="dash-stack dash-stack--fill">
         <div className="dash-card">
           <p className="dash-card-label">Products by category</p>
           {data.categories.length === 0 ? (
@@ -321,6 +349,26 @@ export default async function DashboardOverviewPage() {
               ))}
             </div>
           )}
+        </div>
+        <div className="dash-card">
+          <div className="admin-stat-row">
+            <p className="dash-card-label">Your team</p>
+            <span className="admin-subline">
+              {data.members} {data.members === 1 ? "member" : "members"}
+            </span>
+          </div>
+          <ul className="admin-feed">
+            {data.memberList.map((member) => (
+              <li key={member.id}>
+                <span className="admin-stack">
+                  <span>{member.name}</span>
+                  <span className="admin-subline">{member.email}</span>
+                </span>
+                <span className="dash-badge is-upcoming">{member.role}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
         </div>
       </div>
 

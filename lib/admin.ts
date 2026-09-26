@@ -181,17 +181,6 @@ export async function getOverviewData() {
     [orgsWeek],
     [orgsMonth],
     [usersWeek],
-    [usersMonth],
-    [warehouseTotal],
-    [productTotal],
-    [movementTotal],
-    [auditTotal],
-    [signupsToday],
-    recentSignups,
-    recentActivity,
-    userTrendRows,
-    orgTrendRows,
-    activeTodayRows,
   ] = await Promise.all([
     db
       .select({
@@ -211,12 +200,33 @@ export async function getOverviewData() {
     db.select({ value: count() }).from(organizations).where(gte(organizations.createdAt, weekAgo)),
     db.select({ value: count() }).from(organizations).where(gte(organizations.createdAt, monthAgo)),
     db.select({ value: count() }).from(users).where(gte(users.createdAt, weekAgo)),
+  ]);
+
+  const [
+    [usersMonth],
+    [warehouseTotal],
+    [productTotal],
+    [movementTotal],
+    [auditTotal],
+    [signupsToday],
+  ] = await Promise.all([
     db.select({ value: count() }).from(users).where(gte(users.createdAt, monthAgo)),
     db.select({ value: count() }).from(warehouses),
     db.select({ value: count() }).from(products),
     db.select({ value: count() }).from(stockMovements),
     db.select({ value: count() }).from(auditLogs),
     db.select({ value: count() }).from(users).where(gte(users.createdAt, dayAgo)),
+  ]);
+
+  const [
+    recentSignups,
+    recentActivity,
+    userTrendRows,
+    orgTrendRows,
+    activeTodayRows,
+    newestUsers,
+    activeOrgRows,
+  ] = await Promise.all([
     db
       .select({
         id: organizations.id,
@@ -228,7 +238,7 @@ export async function getOverviewData() {
       })
       .from(organizations)
       .orderBy(desc(organizations.createdAt))
-      .limit(6),
+      .limit(8),
     db
       .select({
         id: auditLogs.id,
@@ -253,6 +263,32 @@ export async function getOverviewData() {
       .selectDistinct({ userId: auditLogs.userId })
       .from(auditLogs)
       .where(and(eq(auditLogs.action, "user.signed_in"), gte(auditLogs.createdAt, dayAgo))),
+    db
+      .select({
+        id: users.id,
+        name: users.name,
+        email: users.email,
+        emailVerifiedAt: users.emailVerifiedAt,
+        createdAt: users.createdAt,
+        organizationName: organizations.name,
+      })
+      .from(users)
+      .leftJoin(memberships, eq(memberships.userId, users.id))
+      .leftJoin(organizations, eq(memberships.organizationId, organizations.id))
+      .orderBy(desc(users.createdAt))
+      .limit(8),
+    db
+      .select({
+        id: organizations.id,
+        name: organizations.name,
+        movements: count(),
+      })
+      .from(auditLogs)
+      .innerJoin(organizations, eq(auditLogs.organizationId, organizations.id))
+      .where(gte(auditLogs.createdAt, monthAgo))
+      .groupBy(organizations.id, organizations.name)
+      .orderBy(desc(count()))
+      .limit(5),
   ]);
 
   const statusCounts: Record<string, number> = {};
@@ -325,5 +361,7 @@ export async function getOverviewData() {
     trend,
     recentSignups,
     recentActivity,
+    newestUsers,
+    activeOrgs: activeOrgRows,
   };
 }

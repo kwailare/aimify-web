@@ -1,4 +1,4 @@
-import { and, count, desc, eq, gte, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   memberships,
@@ -42,6 +42,7 @@ export async function getDashboardOverview(organizationId: string) {
     recentMovements,
     trendRows,
     recentActivity,
+    memberList,
   ] = await Promise.all([
     db
       .select({
@@ -147,6 +148,19 @@ export async function getDashboardOverview(organizationId: string) {
         ),
       ),
     getRecentAuditLogs(organizationId, 6),
+    db
+      .select({
+        id: users.id,
+        name: users.name,
+        email: users.email,
+        role: memberships.role,
+        joinedAt: memberships.createdAt,
+      })
+      .from(memberships)
+      .innerJoin(users, eq(memberships.userId, users.id))
+      .where(eq(memberships.organizationId, organizationId))
+      .orderBy(asc(memberships.createdAt))
+      .limit(6),
   ]);
 
   const trend: { key: string; incoming: number; outgoing: number }[] = [];
@@ -188,5 +202,6 @@ export async function getDashboardOverview(organizationId: string) {
     recentMovements,
     trend,
     recentActivity,
+    memberList,
   };
 }

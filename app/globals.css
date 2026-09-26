@@ -4205,3 +4205,36 @@ textarea.auth-input {
 .admin-attention-list + .admin-detail-title {
   margin-top: 1.1rem;
 }
+
+.dash-stack.dash-stack--wide {
+  max-width: none;
+}
+
+.dash-stack--fill {
+  align-content: start;
+}
+
+.dash-stack--fill > .dash-card {
+  min-width: 0;
+}
+
+.admin-stack--end {
+  align-items: flex-end;
+  text-align: right;
+}
+
+.admin-bar-row--wide {
+  grid-template-columns: minmax(6rem, 10rem) minmax(0, 1fr) 2.5rem;
+}
+
+.admin-bar-row--wide span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (min-width: 1500px) {
+  .dash-stack--wide > .dash-grid--4 {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}

@@ -2,6 +2,7 @@
 
 import { randomBytes } from "crypto";
 import { and, eq, inArray, isNull } from "drizzle-orm";
+import { after } from "next/server";
 import { hash } from "bcryptjs";
 import { db } from "@/db";
 import { organizations, users } from "@/db/schema";
@@ -10,6 +11,7 @@ import { countAuditLogs, deleteAuditLogs } from "@/lib/activity-history";
 import { clearCutoff, isClearRange } from "@/lib/activity-ranges";
 import { getRecentActivity, logAudit } from "@/lib/audit";
 import { sendVerificationEmail } from "@/lib/email-verification";
+import { notifySubscriptionChange } from "@/lib/subscription-notices";
 
 const TEMP_PASSWORD_ALPHABET =
   "ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
@@ -55,6 +57,8 @@ export async function suspendOrganizationAction(organizationId: string) {
     newValue: { subscriptionStatus: "suspended" },
   });
 
+  after(() => notifySubscriptionChange(organizationId, "suspended"));
+
   return { success: true };
 }
 
@@ -98,6 +102,8 @@ export async function reactivateOrganizationAction(organizationId: string) {
     previousValue: before,
     newValue: { subscriptionStatus: nextStatus },
   });
+
+  after(() => notifySubscriptionChange(organizationId, "reactivated"));
 
   return { success: true };
 }
@@ -239,6 +245,19 @@ export async function extendTrialAction(organizationId: string, days: number) {
     newValue: { subscriptionStatus: "trial", trialEndsAt, days },
   });
 
+  after(() =>
+    notifySubscriptionChange(
+      organizationId,
+      "trial_extended",
+      trialEndsAt.toLocaleDateString("en-GB", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+        timeZone: "Africa/Lagos",
+      }),
+    ),
+  );
+
   return { success: true };
 }
 
@@ -291,6 +310,8 @@ export async function activateSubscriptionAction(organizationId: string) {
     previousValue: before,
     newValue: { subscriptionStatus: "active", grantedManually: true },
   });
+
+  after(() => notifySubscriptionChange(organizationId, "activated"));
 
   return { success: true };
 }

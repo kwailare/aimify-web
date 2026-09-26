@@ -18,6 +18,7 @@ const actionLabels: Record<string, string> = {
   "product.image_updated": "Product image updated",
   "product.image_removed": "Product image removed",
   "subscription.expired": "Trial expired",
+  "subscription.notice_sent": "Subscription reminder emailed",
   "subscription.cancelled": "Subscription cancelled",
   "user.password_changed": "Password changed",
   "user.email_verified": "Email address confirmed",

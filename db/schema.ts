@@ -232,3 +232,17 @@ export const invitations = pgTable(
     index("invitations_email_idx").on(table.email),
   ],
 );
+
+export const subscriptionNotices = pgTable(
+  "subscription_notices",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    organizationId: uuid()
+      .notNull()
+      .references(() => organizations.id),
+    kind: text().notNull(),
+    period: text().notNull(),
+    sentAt: timestamp().defaultNow().notNull(),
+  },
+  (table) => [unique().on(table.organizationId, table.kind, table.period)],
+);

@@ -1,6 +1,7 @@
 "use server";
 
 import { and, asc, eq } from "drizzle-orm";
+import { after } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/db";
 import { memberships, organizations, warehouses } from "@/db/schema";
@@ -15,6 +16,7 @@ import {
 } from "@/lib/org-options";
 import { canManageTeam } from "@/lib/roles";
 import { canCancelSubscription } from "@/lib/subscription";
+import { notifySubscriptionChange } from "@/lib/subscription-notices";
 import { syncPrimaryWarehouseName } from "@/lib/warehouses";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -232,6 +234,8 @@ export async function cancelSubscriptionAction() {
     previousValue: before,
     newValue: { subscriptionStatus: "cancelled" },
   });
+
+  after(() => notifySubscriptionChange(membership.organizationId, "cancelled"));
 
   return { success: true };
 }

@@ -53,6 +53,9 @@ export const users = pgTable("users", {
   phone: text(),
   emailVerifiedAt: timestamp(),
   sessionsValidAfter: timestamp(),
+  twoFactorSecret: text(),
+  twoFactorEnabledAt: timestamp(),
+  twoFactorLastStep: integer(),
   createdAt: timestamp().defaultNow().notNull(),
 });
 
@@ -281,4 +284,18 @@ export const userSessions = pgTable(
     revokedAt: timestamp(),
   },
   (table) => [index("user_sessions_user_idx").on(table.userId, table.createdAt)],
+);
+
+export const twoFactorBackupCodes = pgTable(
+  "two_factor_backup_codes",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    userId: uuid()
+      .notNull()
+      .references(() => users.id),
+    codeHash: text().notNull(),
+    usedAt: timestamp(),
+    createdAt: timestamp().defaultNow().notNull(),
+  },
+  (table) => [index("two_factor_backup_codes_user_idx").on(table.userId)],
 );

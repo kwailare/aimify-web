@@ -61,6 +61,11 @@ export default function PrivacyPage() {
                 address and device it came from.
               </li>
               <li>
+                <strong>Two-factor data</strong>, if you turn it on: an
+                encrypted authenticator key and hashed one-time backup codes.
+                We can&apos;t read your backup codes after you create them.
+              </li>
+              <li>
                 <strong>Security records:</strong> short-lived records of
                 sign-in and password-reset attempts (by IP address and email),
                 used to block repeated guessing.
@@ -125,8 +130,11 @@ export default function PrivacyPage() {
               30 days.
             </p>
             <p>
-              Please keep your password private, use a password you don&apos;t
-              use elsewhere, and sign out of shared computers.
+              You can also turn on two-factor authentication in Settings, which
+              asks for a code from an authenticator app each time you sign in
+              to the website or the desktop app. We email you when it is turned
+              on or off. Please keep your password private, use a password you
+              don&apos;t use elsewhere, and sign out of shared computers.
             </p>
           </div>
 

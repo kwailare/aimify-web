@@ -12,6 +12,7 @@ import { clearCutoff, isClearRange } from "@/lib/activity-ranges";
 import { getRecentActivity, logAudit } from "@/lib/audit";
 import { sendVerificationEmail } from "@/lib/email-verification";
 import { revokeAllSessions } from "@/lib/sessions";
+import { disableTwoFactor } from "@/lib/two-factor";
 import { notifySubscriptionChange } from "@/lib/subscription-notices";
 
 const TEMP_PASSWORD_ALPHABET =
@@ -417,4 +418,43 @@ export async function clearActivityHistoryAction(range: string) {
   });
 
   return { success: true, deleted };
+}
+
+export async function resetTwoFactorAction(userId: string) {
+  const context = await getAdminContext();
+
+  if (!context) {
+    return { error: "Not authorized." };
+  }
+
+  const [target] = await db
+    .select({
+      id: users.id,
+      email: users.email,
+      enabledAt: users.twoFactorEnabledAt,
+    })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+
+  if (!target) {
+    return { error: "User not found." };
+  }
+
+  if (!target.enabledAt) {
+    return { error: "Two-factor isn't on for this user." };
+  }
+
+  await disableTwoFactor(userId);
+  await revokeAllSessions(userId);
+
+  await logAudit({
+    userId: context.admin.id,
+    module: "admin",
+    action: "admin.two_factor_reset",
+    recordId: userId,
+    newValue: { targetEmail: target.email },
+  });
+
+  return { success: true };
 }

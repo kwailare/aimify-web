@@ -4,6 +4,7 @@ import { Fragment, useState, type FormEvent } from "react";
 import { Check, Copy, X } from "lucide-react";
 import { AdminActivityList } from "@/components/admin-activity-list";
 import { AdminSendVerificationButton } from "@/components/admin-send-verification-button";
+import { AdminResetTwoFactorButton } from "@/components/admin-reset-two-factor-button";
 import { AdminVerifyEmailButton } from "@/components/admin-verify-email-button";
 import { resetUserPasswordAction } from "@/lib/actions/admin";
 import { formatDate, formatDateTime } from "@/lib/format-date";
@@ -405,6 +406,11 @@ export function AdminUsersTable({ users }: { users: AdminUser[] }) {
                                     ? `Verified ${formatDateTime(user.emailVerifiedAt)}`
                                     : "Not verified yet"}
                                 </DetailItem>
+                                <DetailItem label="Two-factor">
+                                  {user.twoFactorEnabledAt
+                                    ? `On since ${formatDateTime(user.twoFactorEnabledAt)}`
+                                    : "Off"}
+                                </DetailItem>
                                 <DetailItem label="Organization">
                                   {user.organizationName
                                     ? `${user.organizationName} (${user.role})`
@@ -444,6 +450,9 @@ export function AdminUsersTable({ users }: { users: AdminUser[] }) {
                                 >
                                   Reset password
                                 </button>
+                                {user.twoFactorEnabledAt && (
+                                  <AdminResetTwoFactorButton userId={user.id} />
+                                )}
                                 {!user.emailVerifiedAt && (
                                   <>
                                     <AdminVerifyEmailButton userId={user.id} />

@@ -11,6 +11,7 @@ export function SignInForm() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [isPending, setIsPending] = useState(false);
+  const [needsCode, setNeedsCode] = useState(false);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -22,8 +23,16 @@ export function SignInForm() {
 
     setIsPending(false);
 
+    if (result?.twoFactorRequired) {
+      setNeedsCode(true);
+    }
+
     if (result?.error) {
       setError(result.error);
+      return;
+    }
+
+    if (result?.twoFactorRequired) {
       return;
     }
 
@@ -52,6 +61,28 @@ export function SignInForm() {
         autoComplete="current-password"
         placeholder="••••••••"
       />
+      {needsCode && (
+        <div className="auth-field">
+          <label className="auth-label" htmlFor="signin-code">
+            Authentication code
+          </label>
+          <input
+            className="auth-input"
+            id="signin-code"
+            name="code"
+            type="text"
+            inputMode="text"
+            autoComplete="one-time-code"
+            placeholder="123456"
+            autoFocus
+            required
+          />
+          <p className="dash-card-note">
+            Enter the 6-digit code from your authenticator app, or one of your
+            backup codes.
+          </p>
+        </div>
+      )}
       <div className="auth-row">
         <label className="auth-checkbox-row">
           <input type="checkbox" name="remember" />
@@ -63,7 +94,7 @@ export function SignInForm() {
       </div>
       {error && <p className="auth-error">{error}</p>}
       <button className="auth-submit" type="submit" disabled={isPending}>
-        {isPending ? "Signing in…" : "Sign in"}
+        {isPending ? "Signing in…" : needsCode ? "Verify and sign in" : "Sign in"}
         <ArrowUpRight size={16} aria-hidden="true" />
       </button>
     </form>

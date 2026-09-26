@@ -16,6 +16,8 @@ import {
 } from "@/lib/email-verification";
 import { consumeResetToken, issueResetToken } from "@/lib/password-reset";
 import { revokeAllSessions } from "@/lib/sessions";
+import { verifyCredentials } from "@/lib/credentials";
+import { isTwoFactorEnabled } from "@/lib/two-factor";
 import { validateNewPassword } from "@/lib/password-rules";
 import { SITE_URL } from "@/lib/site";
 import { getClientIp, isRateLimited, recordLoginAttempt } from "@/lib/rate-limit";
@@ -178,12 +180,31 @@ export async function signInAction(formData: FormData) {
     };
   }
 
+  const knownUser = await verifyCredentials(email, password);
+
+  if (!knownUser) {
+    await recordLoginAttempt(identifiers, false);
+    return { error: "Invalid email or password." };
+  }
+
+  const code = String(formData.get("code") ?? "").trim();
+  const needsCode = await isTwoFactorEnabled(knownUser.id);
+
+  if (needsCode && !code) {
+    return { twoFactorRequired: true as const };
+  }
+
   try {
-    await signIn("credentials", { email, password, redirect: false });
+    await signIn("credentials", { email, password, code, redirect: false });
   } catch (error) {
     if (error instanceof AuthError) {
       await recordLoginAttempt(identifiers, false);
-      return { error: "Invalid email or password." };
+      return {
+        error: needsCode
+          ? "That code isn't right, or it was already used."
+          : "Invalid email or password.",
+        twoFactorRequired: needsCode ? (true as const) : undefined,
+      };
     }
     throw error;
   }

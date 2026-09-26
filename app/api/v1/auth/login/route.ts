@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { verifyCredentials } from "@/lib/credentials";
 import { createApiToken } from "@/lib/api-auth";
 import { createSession, metaFromHeaders } from "@/lib/sessions";
+import { isTwoFactorEnabled, verifyLoginCode } from "@/lib/two-factor";
 import { logAudit } from "@/lib/audit";
 import { getClientIp, isRateLimited, recordLoginAttempt } from "@/lib/rate-limit";
 
@@ -36,6 +37,31 @@ export async function POST(request: Request) {
       { error: "Invalid email or password." },
       { status: 401 },
     );
+  }
+
+  if (await isTwoFactorEnabled(user.id)) {
+    const code = typeof body?.code === "string" ? body.code : "";
+
+    if (!code.trim()) {
+      return NextResponse.json(
+        {
+          error: "Enter the code from your authenticator app.",
+          code: "two_factor_required",
+        },
+        { status: 401 },
+      );
+    }
+
+    if (!(await verifyLoginCode(user.id, code)).ok) {
+      await recordLoginAttempt(identifiers, false);
+      return NextResponse.json(
+        {
+          error: "That code isn't right, or it was already used.",
+          code: "invalid_two_factor_code",
+        },
+        { status: 401 },
+      );
+    }
   }
 
   await recordLoginAttempt(identifiers, true);

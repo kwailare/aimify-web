@@ -1,6 +1,7 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { verifyCredentials } from "@/lib/credentials";
+import { isTwoFactorEnabled, verifyLoginCode } from "@/lib/two-factor";
 import {
   createSession,
   isLegacyTokenRevoked,
@@ -18,6 +19,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       credentials: {
         email: {},
         password: {},
+        code: {},
       },
       async authorize(credentials) {
         const email =
@@ -35,6 +37,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         if (!user) {
           return null;
+        }
+
+        if (await isTwoFactorEnabled(user.id)) {
+          const code =
+            typeof credentials?.code === "string" ? credentials.code : "";
+          const verified = await verifyLoginCode(user.id, code);
+
+          if (!verified.ok) {
+            return null;
+          }
         }
 
         return { id: user.id, email: user.email, name: user.name };

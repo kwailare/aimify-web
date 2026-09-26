@@ -5,6 +5,7 @@ import { useState, type FormEvent } from "react";
 import { signOut } from "next-auth/react";
 import { PasswordInput } from "@/components/password-input";
 import { SignedInDevices } from "@/components/signed-in-devices";
+import { TwoFactorCard } from "@/components/two-factor-card";
 import { useDashboardContext } from "@/components/dashboard-context";
 import { changePasswordAction, updateProfileAction } from "@/lib/actions/account";
 
@@ -189,6 +190,8 @@ export default function DashboardSettingsPage() {
           {isSavingPassword ? "Updating…" : "Update password"}
         </button>
       </form>
+
+      <TwoFactorCard />
 
       <SignedInDevices />
 

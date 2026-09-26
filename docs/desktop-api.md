@@ -151,6 +151,25 @@ Success — `200`:
 }
 ```
 
+If the person has turned on two-factor authentication, also send the current
+6-digit code from their authenticator app, or one of their backup codes, as
+`code`:
+
+```json
+{
+  "email": "you@company.com",
+  "password": "your-password",
+  "code": "123456"
+}
+```
+
+Without it, a correct password gets `401` with `"code": "two_factor_required"`
+and no token, so the client should show a code prompt and send the same request
+again with `code`. A wrong or already-used code gets `401` with
+`"code": "invalid_two_factor_code"`. Authenticator codes work once, and a backup
+code works once. Wrong codes count toward the same rate limit as wrong
+passwords.
+
 Failure — `400` (missing fields) or `401` (wrong email/password):
 
 ```json

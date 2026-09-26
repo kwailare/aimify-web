@@ -141,6 +141,7 @@ export async function getAllUsers() {
       email: users.email,
       phone: users.phone,
       emailVerifiedAt: users.emailVerifiedAt,
+      twoFactorEnabledAt: users.twoFactorEnabledAt,
       createdAt: users.createdAt,
       role: memberships.role,
       organizationId: organizations.id,

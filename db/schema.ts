@@ -11,6 +11,19 @@ import {
   index,
 } from "drizzle-orm/pg-core";
 
+export const plans = pgTable("plans", {
+  id: uuid().primaryKey().defaultRandom(),
+  name: text().notNull(),
+  description: text(),
+  priceMonthly: numeric({ mode: "number" }).notNull().default(0),
+  maxUsers: integer(),
+  maxWarehouses: integer(),
+  maxProducts: integer(),
+  isDefault: boolean().notNull().default(false),
+  isActive: boolean().notNull().default(true),
+  createdAt: timestamp().defaultNow().notNull(),
+});
+
 export const organizations = pgTable("organizations", {
   id: uuid().primaryKey().defaultRandom(),
   name: text().notNull(),
@@ -28,6 +41,7 @@ export const organizations = pgTable("organizations", {
   dateFormat: text().notNull().default("DD/MM/YYYY"),
   subscriptionStatus: text().notNull().default("pending"),
   trialEndsAt: timestamp(),
+  planId: uuid().references(() => plans.id),
   createdAt: timestamp().defaultNow().notNull(),
 });
 

@@ -15,6 +15,7 @@ import {
   userHasOrganization,
 } from "@/lib/invitations";
 import { validateNewPassword } from "@/lib/password-rules";
+import { checkPlanLimit } from "@/lib/plans";
 import { getClientIp, isRateLimited, recordLoginAttempt } from "@/lib/rate-limit";
 
 const INVALID = "This invitation is invalid, already used, or has expired.";
@@ -70,6 +71,16 @@ export async function acceptInviteAsNewUserAction(
   if (existing) {
     return {
       error: "An account with this email already exists. Sign in to accept the invitation.",
+    };
+  }
+
+  const seats = await checkPlanLimit(invitation.organizationId, "users", {
+    excludePending: true,
+  });
+
+  if (!seats.allowed) {
+    return {
+      error: "This team has reached its plan limit. Ask the person who invited you to free up a seat.",
     };
   }
 
@@ -163,6 +174,16 @@ export async function acceptInviteAsExistingUserAction(token: string) {
 
   if (await userHasOrganization(user.id)) {
     return { error: "Your account already belongs to an organization." };
+  }
+
+  const seats = await checkPlanLimit(invitation.organizationId, "users", {
+    excludePending: true,
+  });
+
+  if (!seats.allowed) {
+    return {
+      error: "This team has reached its plan limit. Ask the person who invited you to free up a seat.",
+    };
   }
 
   if (!(await claimInvitation(invitation.id))) {

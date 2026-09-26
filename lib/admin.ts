@@ -6,6 +6,7 @@ import {
   auditLogs,
   memberships,
   organizations,
+  plans,
   products,
   stockMovements,
   users,
@@ -81,6 +82,8 @@ export async function getAllOrganizations() {
       dateFormat: organizations.dateFormat,
       subscriptionStatus: organizations.subscriptionStatus,
       trialEndsAt: organizations.trialEndsAt,
+      planId: organizations.planId,
+      planName: plans.name,
       createdAt: organizations.createdAt,
       warehouseCount: sql<number>`(select count(*)::int from "warehouses" as w where w."organizationId" = "organizations"."id")`,
       productCount: sql<number>`(select count(*)::int from "products" as p where p."organizationId" = "organizations"."id")`,
@@ -90,6 +93,7 @@ export async function getAllOrganizations() {
       ),
     })
     .from(organizations)
+    .leftJoin(plans, eq(organizations.planId, plans.id))
     .orderBy(desc(organizations.createdAt));
 
   const memberRows = await db
@@ -189,8 +193,10 @@ export async function getOverviewData() {
         status: organizations.subscriptionStatus,
         trialEndsAt: organizations.trialEndsAt,
         createdAt: organizations.createdAt,
+        price: plans.priceMonthly,
       })
-      .from(organizations),
+      .from(organizations)
+      .leftJoin(plans, eq(organizations.planId, plans.id)),
     db.select({ value: count() }).from(users),
     db.select({ value: count() }).from(users).where(isNull(users.emailVerifiedAt)),
     db
@@ -295,9 +301,15 @@ export async function getOverviewData() {
   const endingSoon: { id: string; name: string; trialEndsAt: Date }[] = [];
   const expired: { id: string; name: string; trialEndsAt: Date | null }[] = [];
 
+  let estimatedMonthlyRevenue = 0;
+
   for (const org of orgRows) {
     const status = effectiveStatus(org.status, org.trialEndsAt);
     statusCounts[status] = (statusCounts[status] ?? 0) + 1;
+
+    if (status === "active") {
+      estimatedMonthlyRevenue += org.price ?? MONTHLY_PRICE_NGN;
+    }
 
     if (status === "trial" && org.trialEndsAt && org.trialEndsAt <= weekAhead) {
       endingSoon.push({ id: org.id, name: org.name, trialEndsAt: org.trialEndsAt });
@@ -354,7 +366,7 @@ export async function getOverviewData() {
     statusCounts,
     payingOrganizations: activeCount,
     pastDueOrganizations: pastDue,
-    estimatedMonthlyRevenue: activeCount * MONTHLY_PRICE_NGN,
+    estimatedMonthlyRevenue,
     endingSoon,
     expired: expired.slice(0, 5),
     expiredCount: expired.length,
@@ -364,4 +376,26 @@ export async function getOverviewData() {
     newestUsers,
     activeOrgs: activeOrgRows,
   };
+}
+
+export type AdminPlan = Awaited<ReturnType<typeof getAdminPlans>>[number];
+
+export async function getAdminPlans() {
+  return db
+    .select({
+      id: plans.id,
+      name: plans.name,
+      description: plans.description,
+      priceMonthly: plans.priceMonthly,
+      maxUsers: plans.maxUsers,
+      maxWarehouses: plans.maxWarehouses,
+      maxProducts: plans.maxProducts,
+      isDefault: plans.isDefault,
+      isActive: plans.isActive,
+      createdAt: plans.createdAt,
+      organizationCount: sql<number>`(select count(*)::int from "organizations" as o where o."planId" = "plans"."id")`,
+      payingCount: sql<number>`(select count(*)::int from "organizations" as o where o."planId" = "plans"."id" and o."subscriptionStatus" = 'active')`,
+    })
+    .from(plans)
+    .orderBy(desc(plans.isDefault), asc(plans.priceMonthly));
 }

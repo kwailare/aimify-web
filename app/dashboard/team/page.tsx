@@ -4,6 +4,7 @@ import { TeamManager } from "@/components/team-manager";
 import { db } from "@/db";
 import { memberships, users } from "@/db/schema";
 import { listPendingInvitations } from "@/lib/invitations";
+import { getOrgPlan, getUsage } from "@/lib/plans";
 import { getOrgContext } from "@/lib/org";
 import { assignableRoles, canManageTeam } from "@/lib/roles";
 
@@ -16,6 +17,11 @@ export default async function DashboardTeamPage() {
 
   const { organization, role } = context.membership;
   const canManage = canManageTeam(role);
+
+  const [plan, usage] = await Promise.all([
+    getOrgPlan(organization.id),
+    getUsage(organization.id),
+  ]);
 
   const [members, invitations] = await Promise.all([
     db
@@ -41,7 +47,10 @@ export default async function DashboardTeamPage() {
         <h1 className="dash-page-title">Your team</h1>
         <p className="dash-page-subtitle">
           Everyone who can sign in to {organization.name} on the website and
-          the desktop app.
+          the desktop app.{" "}
+          {plan.maxUsers === null
+            ? `${usage.users} on the ${plan.name} plan, which has no team limit.`
+            : `${usage.users + usage.pendingInvites} of ${plan.maxUsers} seats used on the ${plan.name} plan (pending invitations count).`}
           {canManage
             ? " Invite people by email and choose what they do."
             : " Only Owners and Administrators can change the team."}

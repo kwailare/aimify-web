@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { CancelSubscriptionButton } from "@/components/cancel-subscription-button";
 import { db } from "@/db";
 import { payments } from "@/db/schema";
+import { getOrgPlan, getUsage, limitFor, type LimitKey } from "@/lib/plans";
 import { formatDate } from "@/lib/format-date";
 import { getOrgContext } from "@/lib/org";
 import {
@@ -58,6 +59,16 @@ export default async function DashboardBillingPage() {
     .orderBy(desc(payments.createdAt))
     .limit(50);
 
+  const [plan, usage] = await Promise.all([
+    getOrgPlan(organization.id),
+    getUsage(organization.id),
+  ]);
+  const usageRows: { key: LimitKey; label: string; used: number }[] = [
+    { key: "users", label: "Team members", used: usage.users },
+    { key: "warehouses", label: "Active warehouses", used: usage.warehouses },
+    { key: "products", label: "Active products", used: usage.products },
+  ];
+
   const status = organization.subscriptionStatus;
   const needsPlan = ["expired", "cancelled", "past_due"].includes(status);
 
@@ -74,13 +85,14 @@ export default async function DashboardBillingPage() {
       <div className="plan-summary dash-card">
         <div className="plan-summary-head">
           <div>
-            <p className="plan-summary-name">Full Access</p>
+            <p className="plan-summary-name">{plan.name}</p>
             <p className="plan-summary-note">
               {planNote(status, organization.trialEndsAt)}
             </p>
           </div>
           <p className="plan-summary-price">
-            ₦25,000<span>/ month</span>
+            ₦{plan.priceMonthly.toLocaleString("en-US")}
+            <span>/ month</span>
           </p>
         </div>
         <ul className="plan-summary-list">
@@ -101,6 +113,40 @@ export default async function DashboardBillingPage() {
             and we&apos;ll set it up with you.
           </p>
         )}
+      </div>
+
+      <div className="dash-card">
+        <p className="dash-card-label">Plan usage</p>
+        <div className="admin-bars">
+          {usageRows.map((row) => {
+            const limit = limitFor(plan, row.key);
+            const percent =
+              limit === null ? 0 : Math.min((row.used / limit) * 100, 100);
+
+            return (
+              <div className="admin-bar-row admin-bar-row--wide" key={row.key}>
+                <span>{row.label}</span>
+                <div className="admin-bar-track">
+                  <div
+                    className={`admin-bar-fill ${limit !== null && row.used >= limit ? "is-expired" : "is-active"}`}
+                    style={{ width: `${limit === null ? 8 : percent}%` }}
+                  />
+                </div>
+                <strong>
+                  {row.used}
+                  {limit === null ? "" : ` / ${limit}`}
+                </strong>
+              </div>
+            );
+          })}
+        </div>
+        <p className="dash-card-note" style={{ marginTop: "1rem" }}>
+          Limits with no cap show as unlimited. To change your plan, email{" "}
+          <a className="dash-banner-link" href="mailto:support@aimify.app">
+            support@aimify.app
+          </a>
+          .
+        </p>
       </div>
 
       <div className="dash-card">

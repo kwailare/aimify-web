@@ -9,6 +9,7 @@ import {
   activateSubscriptionAction,
   extendTrialAction,
 } from "@/lib/actions/admin";
+import { assignOrganizationPlanAction } from "@/lib/actions/admin-plans";
 import type { AdminOrganization } from "@/lib/admin";
 import { formatDate, formatDateTime } from "@/lib/format-date";
 import {
@@ -49,8 +50,10 @@ function trialNote(org: AdminOrganization, status: string) {
 
 export function AdminOrganizationsTable({
   organizations,
+  plans,
 }: {
   organizations: AdminOrganization[];
+  plans: { id: string; name: string }[];
 }) {
   const router = useRouter();
   const [search, setSearch] = useState("");
@@ -58,6 +61,7 @@ export function AdminOrganizationsTable({
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [extendDays, setExtendDays] = useState("14");
   const [confirmActivate, setConfirmActivate] = useState<string | null>(null);
+  const [planChoice, setPlanChoice] = useState<Record<string, string>>({});
   const [pendingKey, setPendingKey] = useState<string | null>(null);
   const [notice, setNotice] = useState<Notice>(null);
 
@@ -323,7 +327,7 @@ export function AdminOrganizationsTable({
                                     label="Status"
                                     value={describeSubscriptionStatus(status)}
                                   />
-                                  <Field label="Plan" value="Full Access" />
+                                  <Field label="Plan" value={org.planName ?? "Default plan"} />
                                   <Field
                                     label="Trial ends"
                                     value={
@@ -435,6 +439,54 @@ export function AdminOrganizationsTable({
                                     </button>
                                   </>
                                 )}
+                                <label
+                                  className="auth-label"
+                                  htmlFor={`plan-${org.id}`}
+                                >
+                                  Plan
+                                </label>
+                                <select
+                                  className="auth-input"
+                                  id={`plan-${org.id}`}
+                                  value={planChoice[org.id] ?? org.planId ?? ""}
+                                  onChange={(event) =>
+                                    setPlanChoice((current) => ({
+                                      ...current,
+                                      [org.id]: event.target.value,
+                                    }))
+                                  }
+                                >
+                                  {plans.map((plan) => (
+                                    <option key={plan.id} value={plan.id}>
+                                      {plan.name}
+                                    </option>
+                                  ))}
+                                </select>
+                                <button
+                                  className="dash-table-action"
+                                  type="button"
+                                  disabled={
+                                    pendingKey !== null ||
+                                    !planChoice[org.id] ||
+                                    planChoice[org.id] === org.planId
+                                  }
+                                  onClick={() =>
+                                    run(
+                                      org.id,
+                                      `plan-${org.id}`,
+                                      () =>
+                                        assignOrganizationPlanAction(
+                                          org.id,
+                                          planChoice[org.id],
+                                        ),
+                                      "Plan changed.",
+                                    )
+                                  }
+                                >
+                                  {pendingKey === `plan-${org.id}`
+                                    ? "Working…"
+                                    : "Change plan"}
+                                </button>
                                 {ACTIVATABLE.includes(status) &&
                                   (confirmActivate === org.id ? (
                                     <>

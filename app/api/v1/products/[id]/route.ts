@@ -3,6 +3,7 @@ import { and, eq, ne } from "drizzle-orm";
 import { db } from "@/db";
 import { products } from "@/db/schema";
 import { guardApi } from "@/lib/api-context";
+import { checkPlanLimit } from "@/lib/plans";
 import { logAudit } from "@/lib/audit";
 import { registerCatalogOption } from "@/lib/catalog";
 import { checkStockBounds, parseProductFields } from "@/lib/product-input";
@@ -92,6 +93,22 @@ export async function PATCH(request: Request, { params }: Params) {
       return NextResponse.json(
         { error: "A product with this SKU already exists." },
         { status: 409 },
+      );
+    }
+  }
+
+  if (data.status === "active" && before.status !== "active") {
+    const limit = await checkPlanLimit(context.organizationId, "products");
+
+    if (!limit.allowed) {
+      return NextResponse.json(
+        {
+          error: `${limit.message} Archive another product first.`,
+          code: "plan_limit",
+          limit: limit.limit,
+          used: limit.used,
+        },
+        { status: 403 },
       );
     }
   }

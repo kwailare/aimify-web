@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { verifyApiToken } from "@/lib/api-auth";
 import { getOrgContextForUser } from "@/lib/org";
 import { permissionsFor } from "@/lib/permissions";
+import { getOrgPlan, getUsage } from "@/lib/plans";
 
 export async function GET(request: Request) {
   const userId = await verifyApiToken(request);
@@ -15,6 +16,11 @@ export async function GET(request: Request) {
   if (!context) {
     return NextResponse.json({ error: "User not found." }, { status: 404 });
   }
+
+  const organizationId = context.membership?.organization.id;
+  const [plan, usage] = organizationId
+    ? await Promise.all([getOrgPlan(organizationId), getUsage(organizationId)])
+    : [null, null];
 
   return NextResponse.json({
     user: {
@@ -46,5 +52,20 @@ export async function GET(request: Request) {
       : null,
     role: context.membership?.role ?? null,
     permissions: permissionsFor(context.membership?.role),
+    plan: plan
+      ? {
+          name: plan.name,
+          limits: {
+            users: plan.maxUsers,
+            warehouses: plan.maxWarehouses,
+            products: plan.maxProducts,
+          },
+          usage: {
+            users: usage?.users ?? 0,
+            warehouses: usage?.warehouses ?? 0,
+            products: usage?.products ?? 0,
+          },
+        }
+      : null,
   });
 }

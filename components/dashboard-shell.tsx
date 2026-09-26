@@ -48,11 +48,13 @@ export function DashboardShell({
   user,
   organization,
   role,
+  planName,
   children,
 }: {
   user: typeof users.$inferSelect;
   organization: typeof organizations.$inferSelect;
   role: string;
+  planName: string;
   children: ReactNode;
 }) {
   const pathname = usePathname();
@@ -116,7 +118,7 @@ export function DashboardShell({
             )}
             <p className="dash-org-name">{organization.name}</p>
             <p className="dash-org-plan">
-              Full Access · {describeSubscriptionStatus(organization.subscriptionStatus)}
+              {planName} · {describeSubscriptionStatus(organization.subscriptionStatus)}
             </p>
             <button
               className="dash-signout"

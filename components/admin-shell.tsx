@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import {
   Building2,
   History,
+  Layers,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -23,6 +24,7 @@ const navItems = [
   { href: "/admin", label: "Overview", icon: LayoutDashboard },
   { href: "/admin/organizations", label: "Organizations", icon: Building2 },
   { href: "/admin/users", label: "Users", icon: Users },
+  { href: "/admin/plans", label: "Plans", icon: Layers },
   { href: "/admin/activity", label: "Activity", icon: History },
 ];
 

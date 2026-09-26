@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { and, eq, ne, sql } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { warehouses } from "@/db/schema";
 import { guardApi } from "@/lib/api-context";
 import { logAudit } from "@/lib/audit";
-import { PLAN_LIMITS } from "@/lib/plan-limits";
+import { checkPlanLimit } from "@/lib/plans";
 import { isUuid } from "@/lib/validation";
 import { parseWarehouseFields } from "@/lib/warehouse-input";
 import { syncPrimaryWarehouseName } from "@/lib/warehouses";
@@ -53,22 +53,15 @@ export async function PATCH(request: Request, { params }: Params) {
   if (!before) return NOT_FOUND();
 
   if (data.status === "active" && before.status !== "active") {
-    const [otherActive] = await db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(warehouses)
-      .where(
-        and(
-          eq(warehouses.organizationId, context.organizationId),
-          eq(warehouses.status, "active"),
-          ne(warehouses.id, id),
-        ),
-      );
+    const limit = await checkPlanLimit(context.organizationId, "warehouses");
 
-    if ((otherActive?.count ?? 0) >= PLAN_LIMITS.maxActiveWarehouses) {
+    if (!limit.allowed) {
       return NextResponse.json(
         {
-          error: `Your plan allows ${PLAN_LIMITS.maxActiveWarehouses} active warehouse(s). Disable another one first.`,
+          error: `${limit.message} Disable another one first.`,
           code: "plan_limit",
+          limit: limit.limit,
+          used: limit.used,
         },
         { status: 403 },
       );

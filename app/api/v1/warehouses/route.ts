@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { and, asc, eq, sql } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { warehouses } from "@/db/schema";
 import { guardApi } from "@/lib/api-context";
 import { logAudit } from "@/lib/audit";
-import { PLAN_LIMITS } from "@/lib/plan-limits";
+import { checkPlanLimit } from "@/lib/plans";
 import { parseWarehouseFields } from "@/lib/warehouse-input";
 import { syncPrimaryWarehouseName } from "@/lib/warehouses";
 
@@ -40,21 +40,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "name is required." }, { status: 400 });
   }
 
-  const [active] = await db
-    .select({ count: sql<number>`count(*)::int` })
-    .from(warehouses)
-    .where(
-      and(
-        eq(warehouses.organizationId, context.organizationId),
-        eq(warehouses.status, "active"),
-      ),
-    );
+  const limit = await checkPlanLimit(context.organizationId, "warehouses");
 
-  if ((active?.count ?? 0) >= PLAN_LIMITS.maxActiveWarehouses) {
+  if (!limit.allowed) {
     return NextResponse.json(
       {
-        error: `Your plan allows ${PLAN_LIMITS.maxActiveWarehouses} active warehouse(s). Disable one before adding another.`,
+        error: `${limit.message} Disable one before adding another.`,
         code: "plan_limit",
+        limit: limit.limit,
+        used: limit.used,
       },
       { status: 403 },
     );

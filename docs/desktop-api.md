@@ -82,6 +82,38 @@ to every role.
 Accountant / Finance is read-only. The role rules live in
 `lib/permissions.ts` in `aimify-web`.
 
+## Plan limits
+
+Each organization is on a plan (set by the Aimify team in the admin panel)
+that can cap team members, active warehouses and active products. A cap left
+empty means unlimited. When a write would go over a cap, the API returns `403`:
+
+```json
+{
+  "error": "Your Full Access plan allows 1 active warehouse. Disable one before adding another.",
+  "code": "plan_limit",
+  "limit": 1,
+  "used": 1
+}
+```
+
+Enforced on: creating a warehouse, re-activating a disabled one, creating a
+product, and re-activating an archived one. Archiving a product or disabling a
+warehouse frees a slot. Team-member limits apply on the website when inviting
+and accepting invitations. `GET /me` returns the plan so the desktop app can
+show usage before hitting a limit:
+
+```json
+"plan": {
+  "name": "Full Access",
+  "limits": { "users": null, "warehouses": 1, "products": null },
+  "usage": { "users": 2, "warehouses": 1, "products": 34 }
+}
+```
+
+`null` in `limits` means unlimited. The role check (`forbidden_role`) runs
+before the limit check.
+
 ## Base URL
 
 | Environment | URL |
@@ -249,9 +281,9 @@ You need an **active** `warehouseId` from this list to record a stock movement.
 
 `201` with `{ "warehouse": { ... } }`. Only `name` is required.
 
-The current plan allows **one active warehouse** (see `lib/plan-limits.ts`).
-Creating another while one is active returns `403` with `"code": "plan_limit"`;
-disable the existing one first.
+The plan may cap active warehouses (the default plan allows one). Creating
+another at the cap returns `403` with `"code": "plan_limit"` (see "Plan
+limits"); disable an existing one first.
 
 ### `PATCH /api/v1/warehouses/{id}`
 
@@ -478,8 +510,8 @@ The current picture for active products:
   the product; movements record which warehouse they happened in, but stock
   isn't split by warehouse. This has to change before multiple warehouses are
   offered.
-- **One active warehouse per organization** (plan limit), and no other plan
-  limits are enforced yet.
+- **Plan limits are configured by the Aimify team.** The default plan allows
+  one active warehouse and is otherwise unlimited; see "Plan limits" above.
 - **No online payments.** Subscription status changes to `active` are done by
   the Aimify team for now.
 
@@ -498,7 +530,7 @@ All of this is implemented in the `aimify-web` repo:
 - `lib/images.ts`, `lib/blob.ts` — image validation (by file contents) and
   storage in Vercel Blob for company logos and product images
 - `lib/product-input.ts`, `lib/warehouse-input.ts`, `lib/catalog.ts`,
-  `lib/catalog-routes.ts`, `lib/stock-alerts.ts`, `lib/plan-limits.ts` —
+  `lib/catalog-routes.ts`, `lib/stock-alerts.ts`, `lib/plans.ts` —
   validation and rules behind the endpoints above
 - `app/api/v1/` — `auth/login`, `me`, `warehouses` (+ `[id]`), `products`
   (+ `[id]`), `categories` (+ `[id]`), `units` (+ `[id]`), `alerts/stock`,

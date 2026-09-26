@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import { getOrgContext } from "@/lib/org";
+import { getOrgPlan } from "@/lib/plans";
 import { DashboardShell } from "@/components/dashboard-shell";
 
 export const dynamic = "force-dynamic";
@@ -36,11 +37,14 @@ export default async function DashboardLayout({
     redirect("/account-suspended");
   }
 
+  const plan = await getOrgPlan(context.membership.organization.id);
+
   return (
     <DashboardShell
       user={context.user}
       organization={context.membership.organization}
       role={context.membership.role}
+      planName={plan.name}
     >
       {children}
     </DashboardShell>

@@ -14,6 +14,7 @@ import {
   userHasOrganization,
 } from "@/lib/invitations";
 import { getOrgContext } from "@/lib/org";
+import { checkPlanLimit } from "@/lib/plans";
 import {
   assignableRoles,
   canChangeMember,
@@ -66,6 +67,14 @@ export async function inviteMemberAction(rawEmail: string, role: string) {
 
   if ((await countRecentInvitations(organizationId)) >= MAX_INVITES_PER_HOUR) {
     return { error: "Too many invitations sent in the last hour. Try again later." };
+  }
+
+  const seats = await checkPlanLimit(organizationId, "users");
+
+  if (!seats.allowed) {
+    return {
+      error: `${seats.message} Remove a member or revoke an invitation, or ask the Aimify team about a larger plan.`,
+    };
   }
 
   const [existing] = await db

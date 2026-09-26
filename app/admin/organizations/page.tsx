@@ -1,8 +1,11 @@
 import { AdminOrganizationsTable } from "@/components/admin-organizations-table";
-import { getAllOrganizations } from "@/lib/admin";
+import { getAdminPlans, getAllOrganizations } from "@/lib/admin";
 
 export default async function AdminOrganizationsPage() {
-  const organizations = await getAllOrganizations();
+  const [organizations, allPlans] = await Promise.all([
+    getAllOrganizations(),
+    getAdminPlans(),
+  ]);
 
   return (
     <div className="dash-stack">
@@ -18,7 +21,12 @@ export default async function AdminOrganizationsPage() {
         </p>
       </div>
 
-      <AdminOrganizationsTable organizations={organizations} />
+      <AdminOrganizationsTable
+        organizations={organizations}
+        plans={allPlans
+          .filter((plan) => plan.isActive)
+          .map((plan) => ({ id: plan.id, name: plan.name }))}
+      />
     </div>
   );
 }

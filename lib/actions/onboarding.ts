@@ -6,6 +6,7 @@ import { db } from "@/db";
 import { memberships, organizations, users, warehouses } from "@/db/schema";
 import { logAudit } from "@/lib/audit";
 import { seedDefaultUnits } from "@/lib/catalog";
+import { getDefaultPlan } from "@/lib/plans";
 import { isEmailVerified } from "@/lib/email-verification";
 
 export async function completeProfileAction(formData: FormData) {
@@ -63,9 +64,11 @@ export async function completeOrganizationAction(formData: FormData) {
     return { error: "Company name is required." };
   }
 
+  const defaultPlan = await getDefaultPlan();
+
   const [org] = await db
     .insert(organizations)
-    .values({ name, industry, currency, warehouseName })
+    .values({ name, industry, currency, warehouseName, planId: defaultPlan.id })
     .returning();
 
   await db.insert(memberships).values({

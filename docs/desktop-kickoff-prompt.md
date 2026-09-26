@@ -1,5 +1,8 @@
 # Kickoff prompt for the aimify-desktop Claude Code session
 
+> Historical: written when only login and `/me` existed. For the current
+> API and website, use `desktop-update-prompt.md` instead.
+
 Paste the contents below (everything after the `---`) into a fresh Claude
 Code session started inside the `aimify-desktop` project folder. That session
 has none of this conversation's context, so this prompt plus

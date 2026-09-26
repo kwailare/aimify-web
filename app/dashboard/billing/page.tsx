@@ -145,7 +145,9 @@ export default async function DashboardBillingPage() {
         )}
       </div>
 
-      {canCancelSubscription(status) && <CancelSubscriptionButton />}
+      {canCancelSubscription(status) && context.membership?.role === "Owner" && (
+        <CancelSubscriptionButton />
+      )}
     </div>
   );
 }

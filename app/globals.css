@@ -4238,3 +4238,16 @@ textarea.auth-input {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
+
+.dash-fieldset {
+  display: grid;
+  gap: 1.1rem;
+  min-width: 0;
+  margin: 0;
+  border: 0;
+  padding: 0;
+}
+
+.dash-fieldset:disabled {
+  opacity: 0.65;
+}

@@ -57,10 +57,10 @@ export async function completeOrganizationAction(formData: FormData) {
   const industry = String(formData.get("industry") ?? "").trim();
   const currency = String(formData.get("currency") ?? "").trim() || "NGN";
   const warehouseName = String(formData.get("warehouse") ?? "").trim();
-  const role = String(formData.get("role") ?? "").trim();
+  const role = "Owner";
 
-  if (!name || !role) {
-    return { error: "Company name and your role are required." };
+  if (!name) {
+    return { error: "Company name is required." };
   }
 
   const [org] = await db

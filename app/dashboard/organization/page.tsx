@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { useDashboardContext } from "@/components/dashboard-context";
 import { LogoUploader } from "@/components/logo-uploader";
+import { canManageTeam } from "@/lib/roles";
 import { updateOrganizationAction } from "@/lib/actions/organization";
 import {
   CURRENCIES,
@@ -14,7 +15,8 @@ import {
 
 export default function DashboardOrganizationPage() {
   const router = useRouter();
-  const { organization } = useDashboardContext();
+  const { organization, role } = useDashboardContext();
+  const canEdit = canManageTeam(role);
   const [notice, setNotice] = useState<{
     kind: "error" | "success";
     text: string;
@@ -52,12 +54,22 @@ export default function DashboardOrganizationPage() {
         </p>
       </div>
 
-      <LogoUploader
-        logoUrl={organization.logoUrl}
-        organizationName={organization.name}
-      />
+      {!canEdit && (
+        <p className="dash-card-note">
+          You&apos;re signed in as {role}. Only an Owner or Administrator can
+          change the organization profile.
+        </p>
+      )}
+
+      {canEdit && (
+        <LogoUploader
+          logoUrl={organization.logoUrl}
+          organizationName={organization.name}
+        />
+      )}
 
       <form className="dash-card dash-form" onSubmit={handleSubmit}>
+        <fieldset className="dash-fieldset" disabled={!canEdit}>
         <p className="dash-card-label">Company</p>
         <div className="auth-field-row">
           <div className="auth-field">
@@ -261,6 +273,7 @@ export default function DashboardOrganizationPage() {
         >
           {isSaving ? "Saving…" : "Save changes"}
         </button>
+        </fieldset>
       </form>
     </div>
   );

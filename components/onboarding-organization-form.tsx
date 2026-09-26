@@ -20,15 +20,6 @@ const currencies = [
   { code: "KES", label: "Shilling" },
 ];
 
-const roles = [
-  "Owner",
-  "Administrator",
-  "Warehouse Manager",
-  "Sales Staff",
-  "Inventory Staff",
-  "Accountant / Finance",
-];
-
 export function OnboardingOrganizationForm() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
@@ -106,18 +97,6 @@ export function OnboardingOrganizationForm() {
           placeholder="Main warehouse — Lagos"
           required
         />
-      </div>
-      <div className="auth-field">
-        <label className="auth-label" htmlFor="org-role">
-          Your role at this organization
-        </label>
-        <select className="auth-input" id="org-role" name="role">
-          {roles.map((option) => (
-            <option key={option} value={option}>
-              {option}
-            </option>
-          ))}
-        </select>
       </div>
       {error && <p className="auth-error">{error}</p>}
       <button className="auth-submit" type="submit" disabled={isPending}>

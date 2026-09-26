@@ -13,6 +13,7 @@ import {
   INDUSTRIES,
   TIMEZONES,
 } from "@/lib/org-options";
+import { canManageTeam } from "@/lib/roles";
 import { canCancelSubscription } from "@/lib/subscription";
 import { syncPrimaryWarehouseName } from "@/lib/warehouses";
 
@@ -26,13 +27,20 @@ async function getSessionMembership() {
   }
 
   const [membership] = await db
-    .select({ organizationId: memberships.organizationId })
+    .select({
+      organizationId: memberships.organizationId,
+      role: memberships.role,
+    })
     .from(memberships)
     .where(eq(memberships.userId, session.user.id))
     .limit(1);
 
   return membership
-    ? { userId: session.user.id, organizationId: membership.organizationId }
+    ? {
+        userId: session.user.id,
+        organizationId: membership.organizationId,
+        role: membership.role,
+      }
     : null;
 }
 
@@ -46,6 +54,10 @@ export async function updateOrganizationAction(formData: FormData) {
 
   if (!membership) {
     return { error: "You need to sign in and create an organization first." };
+  }
+
+  if (!canManageTeam(membership.role)) {
+    return { error: "Only an Owner or Administrator can do this." };
   }
 
   const name = String(formData.get("companyName") ?? "").trim();
@@ -182,6 +194,10 @@ export async function cancelSubscriptionAction() {
     return { error: "You need to sign in and create an organization first." };
   }
 
+  if (membership.role !== "Owner") {
+    return { error: "Only an Owner can cancel the subscription." };
+  }
+
   const [before] = await db
     .select({ subscriptionStatus: organizations.subscriptionStatus })
     .from(organizations)
@@ -225,6 +241,10 @@ export async function uploadLogoAction(formData: FormData) {
 
   if (!membership) {
     return { error: "You need to sign in and create an organization first." };
+  }
+
+  if (!canManageTeam(membership.role)) {
+    return { error: "Only an Owner or Administrator can do this." };
   }
 
   if (!isBlobConfigured()) {
@@ -284,6 +304,10 @@ export async function removeLogoAction() {
 
   if (!membership) {
     return { error: "You need to sign in and create an organization first." };
+  }
+
+  if (!canManageTeam(membership.role)) {
+    return { error: "Only an Owner or Administrator can do this." };
   }
 
   const [before] = await db

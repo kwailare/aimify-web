@@ -15,6 +15,7 @@ import {
   Menu,
   Moon,
   Settings,
+  Users,
   Sun,
   X,
 } from "lucide-react";
@@ -27,6 +28,7 @@ import { describeSubscriptionStatus } from "@/lib/subscription";
 const navItems = [
   { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
   { href: "/dashboard/organization", label: "Organization", icon: Building2 },
+  { href: "/dashboard/team", label: "Team", icon: Users },
   { href: "/dashboard/activity", label: "Activity", icon: History },
   { href: "/dashboard/billing", label: "Billing", icon: CreditCard },
   { href: "/dashboard/download", label: "Download", icon: Download },

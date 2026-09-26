@@ -207,3 +207,28 @@ export const emailVerificationTokens = pgTable("email_verification_tokens", {
   usedAt: timestamp(),
   createdAt: timestamp().defaultNow().notNull(),
 });
+
+export const invitations = pgTable(
+  "invitations",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    organizationId: uuid()
+      .notNull()
+      .references(() => organizations.id),
+    email: text().notNull(),
+    role: text().notNull(),
+    tokenHash: text().notNull().unique(),
+    invitedBy: uuid().references(() => users.id),
+    expiresAt: timestamp().notNull(),
+    acceptedAt: timestamp(),
+    revokedAt: timestamp(),
+    createdAt: timestamp().defaultNow().notNull(),
+  },
+  (table) => [
+    index("invitations_organization_created_at_idx").on(
+      table.organizationId,
+      table.createdAt,
+    ),
+    index("invitations_email_idx").on(table.email),
+  ],
+);

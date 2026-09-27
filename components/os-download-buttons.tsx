@@ -8,19 +8,22 @@ const platforms = [
     id: "windows",
     label: "Windows",
     detail: "Windows 10 or later (64-bit)",
-    comingSoon: false,
+    comingSoon: !process.env.NEXT_PUBLIC_DOWNLOAD_URL_WINDOWS,
+    url: process.env.NEXT_PUBLIC_DOWNLOAD_URL_WINDOWS ?? "#",
   },
   {
     id: "mac",
     label: "macOS",
     detail: "macOS 12 Monterey or later",
     comingSoon: true,
+    url: "#",
   },
   {
     id: "linux",
     label: "Linux",
     detail: "Ubuntu 20.04+ / Debian-based",
     comingSoon: true,
+    url: "#",
   },
 ];
 
@@ -75,7 +78,13 @@ export function OsDownloadButtons() {
         }
 
         return (
-          <a key={platform.id} className={classNames.join(" ")} href="#">
+          <a
+            key={platform.id}
+            className={classNames.join(" ")}
+            href={platform.url}
+            download
+            rel="noopener"
+          >
             <Download size={18} aria-hidden="true" />
             <span className="download-option-text">
               <strong>{platform.label}</strong>

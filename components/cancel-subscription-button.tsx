@@ -43,8 +43,10 @@ export function CancelSubscriptionButton() {
     <div className="dash-card dash-form">
       <p className="dash-card-label">Cancel subscription</p>
       <p className="dash-empty">
-        The desktop app stops working as soon as you cancel. To come back
-        later you&apos;ll need to contact support to reactivate.
+        If you&apos;ve paid for the current period, everything keeps working until
+        it ends and you won&apos;t be charged again. During a free trial the
+        desktop app stops working as soon as you cancel. You can subscribe
+        again from this page at any time.
       </p>
       {error && (
         <p className="auth-error" role="alert">

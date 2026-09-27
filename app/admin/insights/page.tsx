@@ -1,4 +1,5 @@
 import { getInsights } from "@/lib/admin-insights";
+import { getCollected30 } from "@/lib/admin-payments";
 
 const naira = new Intl.NumberFormat("en-NG", {
   style: "currency",
@@ -11,7 +12,7 @@ function percent(value: number | null) {
 }
 
 export default async function AdminInsightsPage() {
-  const data = await getInsights();
+  const [data, collected30] = await Promise.all([getInsights(), getCollected30()]);
   const chartMax = Math.max(
     1,
     ...data.months.flatMap((month) => [
@@ -40,7 +41,8 @@ export default async function AdminInsightsPage() {
           <p className="dash-card-label">Monthly revenue (MRR)</p>
           <p className="dash-card-value">{naira.format(data.mrr)}</p>
           <p className="dash-card-note">
-            {data.activeNow} paying · {naira.format(data.arr)} a year
+            {data.activeNow} paying · {naira.format(data.arr)} a year ·{" "}
+            {naira.format(collected30)} collected in 30 days
           </p>
         </div>
         <div className="dash-card">

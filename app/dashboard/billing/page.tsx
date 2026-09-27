@@ -1,12 +1,15 @@
 import { desc, eq } from "drizzle-orm";
 import { Check } from "lucide-react";
 import { redirect } from "next/navigation";
+import { BillingControls } from "@/components/billing-controls";
 import { CancelSubscriptionButton } from "@/components/cancel-subscription-button";
 import { db } from "@/db";
 import { payments } from "@/db/schema";
 import { getOrgPlan, getUsage, limitFor, type LimitKey } from "@/lib/plans";
 import { formatDate } from "@/lib/format-date";
+import { getPaymentMethod } from "@/lib/billing";
 import { getOrgContext } from "@/lib/org";
+import { canManageTeam } from "@/lib/roles";
 import {
   canCancelSubscription,
   describeSubscriptionStatus,
@@ -43,14 +46,41 @@ function paymentBadgeClass(status: string) {
   return status === "succeeded" ? "is-active" : "is-upcoming";
 }
 
-export default async function DashboardBillingPage() {
+const PAYMENT_NOTICES: Record<string, { kind: "success" | "error"; text: string }> = {
+  success: { kind: "success", text: "Payment received. Thank you, your subscription is active." },
+  pending: { kind: "success", text: "Your payment is still being confirmed. This page updates as soon as Paystack confirms it." },
+  failed: { kind: "error", text: "The payment didn't go through, so you haven't been charged. You can try again." },
+  missing: { kind: "error", text: "We couldn't find that payment." },
+};
+
+function daysUntil(date: Date) {
+  return Math.ceil((date.getTime() - Date.now()) / 86400000);
+}
+
+function formatLong(date: Date) {
+  return date.toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone: "Africa/Lagos",
+  });
+}
+
+export default async function DashboardBillingPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ payment?: string }>;
+}) {
+  const { payment: paymentResult } = await searchParams;
   const context = await getOrgContext();
 
   if (!context?.membership) {
     redirect("/signin");
   }
 
-  const { organization } = context.membership;
+  const { organization, role } = context.membership;
+  const method = await getPaymentMethod(organization.id);
+  const canPay = canManageTeam(role);
 
   const history = await db
     .select()
@@ -70,7 +100,25 @@ export default async function DashboardBillingPage() {
   ];
 
   const status = organization.subscriptionStatus;
-  const needsPlan = ["expired", "cancelled", "past_due"].includes(status);
+  const periodEnd = organization.currentPeriodEnd;
+  const daysToRenewal = periodEnd ? daysUntil(periodEnd) : null;
+  const showPay =
+    status !== "suspended" &&
+    (status !== "active" ||
+      !periodEnd ||
+      (daysToRenewal !== null && daysToRenewal <= 7 && !organization.cancelAtPeriodEnd));
+  const payLabel =
+    status === "trial" || status === "pending"
+      ? "Subscribe now"
+      : status === "active"
+        ? "Renew now"
+        : "Pay and reactivate";
+  const cancelScheduledFor =
+    organization.cancelAtPeriodEnd && periodEnd ? formatLong(periodEnd) : null;
+  const cardLabel = method
+    ? `${method.brand ?? "Card"} ending ${method.last4 ?? "····"}${method.expMonth && method.expYear ? `, expires ${method.expMonth}/${method.expYear}` : ""}`
+    : null;
+  const paymentNotice = paymentResult ? PAYMENT_NOTICES[paymentResult] : null;
 
   return (
     <div className="dash-stack">
@@ -81,6 +129,15 @@ export default async function DashboardBillingPage() {
           Manage your plan and see your payment history.
         </p>
       </div>
+
+      {paymentNotice && (
+        <p
+          className={paymentNotice.kind === "error" ? "auth-error" : "auth-success"}
+          role={paymentNotice.kind === "error" ? "alert" : "status"}
+        >
+          {paymentNotice.text}
+        </p>
+      )}
 
       <div className="plan-summary dash-card">
         <div className="plan-summary-head">
@@ -103,16 +160,23 @@ export default async function DashboardBillingPage() {
             </li>
           ))}
         </ul>
-        {(needsPlan || status === "trial") && (
-          <p className="dash-empty">
-            Online payments aren&apos;t live yet. To{" "}
-            {needsPlan ? "reactivate" : "activate"} your plan, email{" "}
-            <a className="dash-banner-link" href="mailto:support@aimify.app">
-              support@aimify.app
-            </a>{" "}
-            and we&apos;ll set it up with you.
+        {periodEnd && (status === "active" || status === "past_due") && (
+          <p className="dash-empty" suppressHydrationWarning>
+            {status === "past_due"
+              ? `Payment overdue. Your access continues until ${formatLong(new Date(periodEnd.getTime() + 3 * 86400000))} while you pay.`
+              : organization.cancelAtPeriodEnd
+                ? `Paid until ${formatLong(periodEnd)}.`
+                : `Paid until ${formatLong(periodEnd)}. Renews automatically${method ? " to your saved card" : ", pay before then to keep access"}.`}
           </p>
         )}
+        <BillingControls
+          canPay={canPay}
+          isOwner={role === "Owner"}
+          payLabel={payLabel}
+          showPay={showPay}
+          cardLabel={cardLabel}
+          cancelScheduledFor={cancelScheduledFor}
+        />
       </div>
 
       <div className="dash-card">
@@ -191,7 +255,9 @@ export default async function DashboardBillingPage() {
         )}
       </div>
 
-      {canCancelSubscription(status) && context.membership?.role === "Owner" && (
+      {canCancelSubscription(status) &&
+        !organization.cancelAtPeriodEnd &&
+        context.membership?.role === "Owner" && (
         <CancelSubscriptionButton />
       )}
     </div>

@@ -6,6 +6,7 @@ import { useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Building2,
+  CreditCard,
   History,
   Layers,
   LayoutDashboard,
@@ -27,6 +28,7 @@ const navItems = [
   { href: "/admin/organizations", label: "Organizations", icon: Building2 },
   { href: "/admin/users", label: "Users", icon: Users },
   { href: "/admin/plans", label: "Plans", icon: Layers },
+  { href: "/admin/payments", label: "Payments", icon: CreditCard },
   { href: "/admin/insights", label: "Insights", icon: TrendingUp },
   { href: "/admin/support", label: "Support", icon: LifeBuoy },
   { href: "/admin/activity", label: "Activity", icon: History },

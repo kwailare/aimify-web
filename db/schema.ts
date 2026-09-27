@@ -42,6 +42,10 @@ export const organizations = pgTable("organizations", {
   subscriptionStatus: text().notNull().default("pending"),
   trialEndsAt: timestamp(),
   planId: uuid().references(() => plans.id),
+  currentPeriodEnd: timestamp(),
+  cancelAtPeriodEnd: boolean().notNull().default(false),
+  renewalAttempts: integer().notNull().default(0),
+  lastRenewalAttemptAt: timestamp(),
   createdAt: timestamp().defaultNow().notNull(),
 });
 
@@ -195,6 +199,12 @@ export const payments = pgTable(
     provider: text(),
     providerReference: text().unique(),
     description: text(),
+    kind: text().notNull().default("checkout"),
+    channel: text(),
+    userId: uuid().references(() => users.id),
+    periodStart: timestamp(),
+    periodEnd: timestamp(),
+    failureReason: text(),
     paidAt: timestamp(),
     createdAt: timestamp().defaultNow().notNull(),
   },
@@ -337,3 +347,106 @@ export const supportMessages = pgTable(
   },
   (table) => [index("support_messages_ticket_idx").on(table.ticketId, table.createdAt)],
 );
+
+// Suppliers and customers: the people a business buys from and sells to.
+// Archived (never deleted) so their credit history stays intact.
+export const suppliers = pgTable(
+  "suppliers",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    organizationId: uuid()
+      .notNull()
+      .references(() => organizations.id),
+    name: text().notNull(),
+    contactPerson: text(),
+    phone: text(),
+    email: text(),
+    address: text(),
+    notes: text(),
+    status: text().notNull().default("active"),
+    createdAt: timestamp().defaultNow().notNull(),
+    updatedAt: timestamp().defaultNow().notNull(),
+  },
+  (table) => [index("suppliers_organization_idx").on(table.organizationId)],
+);
+
+export const customers = pgTable(
+  "customers",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    organizationId: uuid()
+      .notNull()
+      .references(() => organizations.id),
+    name: text().notNull(),
+    phone: text(),
+    email: text(),
+    address: text(),
+    notes: text(),
+    creditLimit: numeric({ mode: "number" }).notNull().default(0),
+    status: text().notNull().default("active"),
+    createdAt: timestamp().defaultNow().notNull(),
+    updatedAt: timestamp().defaultNow().notNull(),
+  },
+  (table) => [index("customers_organization_idx").on(table.organizationId)],
+);
+
+// The credit ledger for both customers (what they owe us) and suppliers
+// (what we owe them). `amount` is signed: positive raises the balance owed
+// (a sale on credit, a supplier invoice), negative lowers it (a payment).
+// A party's balance is always the sum of its entries, so two people
+// recording payments at once, or offline and synced later, never overwrite
+// each other. `clientRef` makes a retried request harmless: the same ref
+// from the same organization returns the existing entry instead of adding
+// a second one.
+export const creditEntries = pgTable(
+  "credit_entries",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    organizationId: uuid()
+      .notNull()
+      .references(() => organizations.id),
+    partyType: text().notNull(),
+    partyId: uuid().notNull(),
+    kind: text().notNull(),
+    amount: numeric({ mode: "number" }).notNull(),
+    note: text(),
+    userId: uuid().references(() => users.id),
+    clientRef: text(),
+    createdAt: timestamp().defaultNow().notNull(),
+  },
+  (table) => [
+    index("credit_entries_party_idx").on(
+      table.organizationId,
+      table.partyType,
+      table.partyId,
+      table.createdAt,
+    ),
+    unique().on(table.organizationId, table.clientRef),
+  ],
+);
+
+export const paymentMethods = pgTable("payment_methods", {
+  id: uuid().primaryKey().defaultRandom(),
+  organizationId: uuid()
+    .notNull()
+    .unique()
+    .references(() => organizations.id),
+  authorizationCode: text().notNull(),
+  email: text().notNull(),
+  customerCode: text(),
+  last4: text(),
+  brand: text(),
+  expMonth: text(),
+  expYear: text(),
+  bank: text(),
+  updatedAt: timestamp().defaultNow().notNull(),
+  createdAt: timestamp().defaultNow().notNull(),
+});
+
+export const paymentEvents = pgTable("payment_events", {
+  id: uuid().primaryKey().defaultRandom(),
+  eventKey: text().notNull().unique(),
+  type: text().notNull(),
+  reference: text(),
+  createdAt: timestamp().defaultNow().notNull(),
+});

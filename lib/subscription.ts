@@ -39,7 +39,7 @@ const BLOCKED_MESSAGES: Record<string, string> = {
   pending:
     "Finish setting up your subscription on the Aimify website to use the desktop app.",
   expired:
-    "Your free trial has ended. Subscribe on the Aimify website to keep using the desktop app.",
+    "Your free trial or subscription has ended. Subscribe on the Aimify website to keep using the desktop app.",
   cancelled:
     "Your subscription was cancelled. Reactivate it on the Aimify website to keep using the desktop app.",
   suspended:

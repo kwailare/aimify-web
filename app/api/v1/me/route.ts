@@ -38,6 +38,8 @@ export async function GET(request: Request) {
           currency: context.membership.organization.currency,
           warehouseName: context.membership.organization.warehouseName,
           logoUrl: context.membership.organization.logoUrl,
+          currentPeriodEnd: context.membership.organization.currentPeriodEnd,
+          cancelAtPeriodEnd: context.membership.organization.cancelAtPeriodEnd,
           registrationNumber: context.membership.organization.registrationNumber,
           address: context.membership.organization.address,
           phone: context.membership.organization.phone,

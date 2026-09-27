@@ -24,7 +24,8 @@ export type ChangeKind =
   | "reactivated"
   | "trial_extended"
   | "activated"
-  | "cancelled";
+  | "cancelled"
+  | "cancel_scheduled";
 
 function escapeHtml(value: string) {
   return value
@@ -283,6 +284,13 @@ const CHANGE_COPY: Record<
     subject: `Your Aimify subscription for ${name} is active`,
     lines: [
       `The Aimify team activated the subscription for ${name}. Everything is unlocked, in the dashboard and the desktop app.`,
+    ],
+  }),
+  cancel_scheduled: (name, detail) => ({
+    subject: `The Aimify subscription for ${name} will end${detail ? ` on ${detail}` : ""}`,
+    lines: [
+      `The subscription for ${name} was set to cancel${detail ? `, effective ${detail}` : " at the end of the paid period"}. Everything keeps working until then and you won't be charged again.`,
+      "You can undo this any time before that date from the billing page.",
     ],
   }),
   cancelled: (name) => ({

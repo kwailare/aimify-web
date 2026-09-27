@@ -201,13 +201,54 @@ export async function cancelSubscriptionAction() {
   }
 
   const [before] = await db
-    .select({ subscriptionStatus: organizations.subscriptionStatus })
+    .select({
+      subscriptionStatus: organizations.subscriptionStatus,
+      currentPeriodEnd: organizations.currentPeriodEnd,
+      cancelAtPeriodEnd: organizations.cancelAtPeriodEnd,
+    })
     .from(organizations)
     .where(eq(organizations.id, membership.organizationId))
     .limit(1);
 
   if (!before || !canCancelSubscription(before.subscriptionStatus)) {
     return { error: "This subscription can't be cancelled." };
+  }
+
+  if (
+    before.subscriptionStatus === "active" &&
+    before.currentPeriodEnd &&
+    before.currentPeriodEnd > new Date()
+  ) {
+    if (before.cancelAtPeriodEnd) {
+      return { error: "This subscription is already set to end." };
+    }
+
+    await db
+      .update(organizations)
+      .set({ cancelAtPeriodEnd: true })
+      .where(eq(organizations.id, membership.organizationId));
+
+    await logAudit({
+      organizationId: membership.organizationId,
+      userId: membership.userId,
+      module: "subscription",
+      action: "subscription.cancel_scheduled",
+      recordId: membership.organizationId,
+      newValue: { endsAt: before.currentPeriodEnd.toISOString() },
+    });
+
+    const endsOn = before.currentPeriodEnd.toLocaleDateString("en-GB", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+      timeZone: "Africa/Lagos",
+    });
+
+    after(() =>
+      notifySubscriptionChange(membership.organizationId, "cancel_scheduled", endsOn),
+    );
+
+    return { success: true, scheduled: true as const, endsAt: endsOn };
   }
 
   const [updated] = await db

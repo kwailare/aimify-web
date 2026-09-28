@@ -1,8 +1,10 @@
 # Update prompt for the aimify-desktop Claude Code session
 
 Use this when the desktop app was started from `desktop-kickoff-prompt.md` (or
-earlier) and needs to catch up with the website and API as of 26 September
-2026.
+earlier) and needs to catch up with the website and API as of 28 September
+2026. If the app was already brought up to date once using an earlier copy of
+this prompt, it only needs section 5 (payments and billing status) below —
+everything else was covered last time.
 
 How to use it:
 
@@ -87,7 +89,24 @@ billing page, and a "Check again" button that re-calls `/me`. Show a banner
 for `trial` with days left from `trialEndsAt`, and for `past_due`. Login and
 `/me` stay open so a locked-out person can still see why.
 
-## 5. Plan limits
+## 5. Payments and billing status
+
+- `organization.currentPeriodEnd` (ISO date or `null`) and `organization.cancelAtPeriodEnd` (boolean) are new
+  fields in `/me`. `currentPeriodEnd` is the date the current paid period ends, once the organization has paid
+  at least once. `cancelAtPeriodEnd: true` means the owner cancelled but access continues normally until
+  `currentPeriodEnd` — nothing in the app should change because of it until that date passes.
+- All payment happens on the website (`/dashboard/billing`), by card, bank transfer or USSD through Paystack.
+  There is no payment endpoint in this API, and none should be added here. The locked screen from section 4,
+  and any "manage billing" or "upgrade plan" button, should open that page in the system browser rather than
+  building a payment form in the app.
+- `subscriptionStatus` can now be `past_due` for a real reason: a renewal payment failed. The app still works
+  normally during `past_due` (it's already in the allowed set in section 4), but show a small non-blocking
+  banner such as "A payment didn't go through — update it on the website" using the same message pattern
+  as the locked screen, rather than treating it like `expired`.
+- Card renewals are automatic on the website's side; bank-transfer and USSD customers get an email each month
+  instead. Either way there's nothing for the desktop app to trigger.
+
+## 6. Plan limits
 
 Creating or re-activating a warehouse or product beyond the plan returns
 `403` with `"code": "plan_limit"`, `limit` and `used`. Show a clear message
@@ -95,7 +114,7 @@ Creating or re-activating a warehouse or product beyond the plan returns
 website's billing page. Archiving a product or disabling a warehouse frees a
 slot.
 
-## 6. Data endpoints that now exist
+## 7. Data endpoints that now exist
 
 Wire the app to these if it doesn't already, and keep money and stock
 integers/decimals exactly as the API returns them:
@@ -113,7 +132,7 @@ integers/decimals exactly as the API returns them:
 - Stock alerts: `GET /api/v1/alerts/stock` for a low-stock / out-of-stock
   panel and badge.
 
-## 7. Multi-user reality
+## 8. Multi-user reality
 
 Organizations now have several people with different roles (the owner invites
 them on the website). So:
@@ -124,7 +143,7 @@ them on the website). So:
 - Removal from a team ends the session (`401`), which section 1 already
   handles.
 
-## 8. Things that are still not on the backend
+## 9. Things that are still not on the backend
 
 There are no endpoints yet for customers, suppliers, purchases, sales, credit,
 expenses, transfers, returns, per-warehouse stock balances or inventory
@@ -134,7 +153,7 @@ as local-only so we can plan sync later. Stock is one number per product for
 the whole organization today (movements record which warehouse they happened
 in, but stock is not split by warehouse).
 
-## 9. Error handling and behaviour to apply everywhere
+## 10. Error handling and behaviour to apply everywhere
 
 - One API client that adds the bearer token, parses `{ error, code }`, and
   maps: `401` to sign-in, `402/403 subscription_inactive` to the locked
@@ -148,7 +167,7 @@ in, but stock is not split by warehouse).
 
 Before changing code, give me a short table: each numbered item above, whether
 the app already does it, and what you'll change. Then implement in order 1 to
-5 first, run the app against the local backend with a test account (a
+6 first, run the app against the local backend with a test account (a
 throwaway trial organization, plus one team member with the Sales Staff role
 to check the permission-driven UI, and one account with two-factor turned on),
 and tell me what you verified and what you could not.

@@ -4,7 +4,7 @@ import { db } from "@/db";
 import { customers, suppliers } from "@/db/schema";
 import { guardApi } from "@/lib/api-context";
 import { logAudit } from "@/lib/audit";
-import { balanceOf, balancesFor, type PartyType } from "@/lib/credit";
+import { roundMoney, type PartyType } from "@/lib/credit";
 import { parsePartyFields } from "@/lib/party-input";
 import type { Permission } from "@/lib/permissions";
 import { isUuid } from "@/lib/validation";
@@ -40,10 +40,14 @@ const notFound = (type: PartyType) =>
     { status: 404 },
   );
 
-type Row = Record<string, unknown> & { id: string };
+type Row = Record<string, unknown> & { id: string; balance: number };
 
-function withBalance(row: Row, balance: number) {
-  return { ...row, balanceOwed: balance };
+// `balance` is an authoritative, atomically updated column on the row
+// itself (see lib/credit.ts), so shaping the response is just a rename -
+// no separate balance lookup needed.
+function withBalance(row: Row) {
+  const { balance, ...rest } = row;
+  return { ...rest, balanceOwed: roundMoney(balance) };
 }
 
 export async function listParties(request: Request, type: PartyType) {
@@ -61,19 +65,14 @@ export async function listParties(request: Request, type: PartyType) {
     conditions.push(ne(config.table.status, "archived"));
   }
 
-  const [rows, balances] = await Promise.all([
-    db
-      .select()
-      .from(config.table)
-      .where(and(...conditions))
-      .orderBy(asc(config.table.name)),
-    balancesFor(context.organizationId, type),
-  ]);
+  const rows = await db
+    .select()
+    .from(config.table)
+    .where(and(...conditions))
+    .orderBy(asc(config.table.name));
 
   return NextResponse.json({
-    [config.plural]: (rows as Row[]).map((row) =>
-      withBalance(row, balances.get(row.id) ?? 0),
-    ),
+    [config.plural]: (rows as Row[]).map((row) => withBalance(row)),
   });
 }
 
@@ -118,7 +117,7 @@ export async function createParty(request: Request, type: PartyType) {
   });
 
   return NextResponse.json(
-    { [type]: withBalance(created as Row, 0) },
+    { [type]: withBalance(created as Row) },
     { status: 201 },
   );
 }
@@ -145,10 +144,7 @@ export async function getParty(request: Request, type: PartyType, id: string) {
   if (!row) return notFound(type);
 
   return NextResponse.json({
-    [type]: withBalance(
-      row as Row,
-      await balanceOf(context.organizationId, type, id),
-    ),
+    [type]: withBalance(row as Row),
   });
 }
 
@@ -228,10 +224,7 @@ export async function updateParty(request: Request, type: PartyType, id: string)
   });
 
   return NextResponse.json({
-    [type]: withBalance(
-      updatedRow,
-      await balanceOf(context.organizationId, type, id),
-    ),
+    [type]: withBalance(updatedRow),
   });
 }
 
@@ -267,9 +260,6 @@ export async function archiveParty(request: Request, type: PartyType, id: string
   });
 
   return NextResponse.json({
-    [type]: withBalance(
-      archived as Row,
-      await balanceOf(context.organizationId, type, id),
-    ),
+    [type]: withBalance(archived as Row),
   });
 }

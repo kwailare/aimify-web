@@ -609,9 +609,12 @@ Failures: `400` (bad input), `401`, `402`/`403` (subscription, or
 
 One ledger for both sides of a wholesaler's credit: a customer's balance is
 what they owe you, a supplier's balance is what you owe them. A positive
-`balanceOwed` always means "still owed". A party's balance is the sum of its
-entries, so two people recording payments at once - or offline and synced
-later - never overwrite each other.
+`balanceOwed` always means "still owed". Every entry you post is kept
+(nothing is ever overwritten), and the party's `balanceOwed` is moved by one
+atomic update per entry - so two people recording payments on the same party
+at once, or offline changes synced later, can never both be accepted past
+what's actually owed. The `overpayment` check below is enforced by that same
+atomic update, not a separate read, so it holds even under real concurrency.
 
 ### `GET /api/v1/credit-entries`
 

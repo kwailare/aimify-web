@@ -363,6 +363,11 @@ export const suppliers = pgTable(
     email: text(),
     address: text(),
     notes: text(),
+    // Authoritative, atomically updated running balance (what we owe them).
+    // Not derived from summing credit_entries at read time, so a guarded
+    // UPDATE on this column can never be raced the way a read-then-insert
+    // check could be.
+    balance: numeric({ mode: "number" }).notNull().default(0),
     status: text().notNull().default("active"),
     createdAt: timestamp().defaultNow().notNull(),
     updatedAt: timestamp().defaultNow().notNull(),
@@ -383,6 +388,11 @@ export const customers = pgTable(
     address: text(),
     notes: text(),
     creditLimit: numeric({ mode: "number" }).notNull().default(0),
+    // Authoritative, atomically updated running balance (what they owe us).
+    // Not derived from summing credit_entries at read time, so a guarded
+    // UPDATE on this column can never be raced the way a read-then-insert
+    // check could be.
+    balance: numeric({ mode: "number" }).notNull().default(0),
     status: text().notNull().default("active"),
     createdAt: timestamp().defaultNow().notNull(),
     updatedAt: timestamp().defaultNow().notNull(),

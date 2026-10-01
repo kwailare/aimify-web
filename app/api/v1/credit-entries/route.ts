@@ -5,11 +5,12 @@ import { creditEntries } from "@/db/schema";
 import { denyIfForbidden, guardApi } from "@/lib/api-context";
 import { logAudit } from "@/lib/audit";
 import {
+  applyBalanceChange,
   balanceOf,
   findParty,
   isEntryKind,
   isPartyType,
-  roundMoney,
+  reverseBalanceChange,
   signedAmount,
 } from "@/lib/credit";
 import { can } from "@/lib/permissions";
@@ -177,14 +178,25 @@ export async function POST(request: Request) {
   }
 
   const signed = signedAmount(kind, amount);
-  const balanceBefore = await balanceOf(context.organizationId, partyType, partyId);
 
-  if (kind === "payment" && roundMoney(-signed) > balanceBefore) {
+  // The balance moves first, in one atomic UPDATE whose WHERE clause checks
+  // the resulting value itself (see applyBalanceChange) - so this guard
+  // can't be bypassed by two requests both reading the same "before"
+  // balance, the way a separate read-then-insert check could be raced.
+  const applied = await applyBalanceChange(
+    context.organizationId,
+    partyType,
+    partyId,
+    signed,
+    kind === "payment",
+  );
+
+  if (!applied.ok) {
     return NextResponse.json(
       {
-        error: `This payment is more than the balance owed (${balanceBefore}).`,
+        error: `This payment is more than the balance owed (${applied.currentBalance}).`,
         code: "overpayment",
-        balanceOwed: balanceBefore,
+        balanceOwed: applied.currentBalance,
       },
       { status: 400 },
     );
@@ -205,8 +217,12 @@ export async function POST(request: Request) {
     .onConflictDoNothing()
     .returning();
 
-  // Lost a race with the same clientRef: hand back the winner.
+  // Lost a race with the same clientRef: the balance change above was ours,
+  // but the ledger row wasn't (a concurrent identical request's was), so
+  // undo it and hand back the winner's entry and the current balance.
   if (!entry) {
+    await reverseBalanceChange(context.organizationId, partyType, partyId, signed);
+
     const [existing] = await db
       .select()
       .from(creditEntries)
@@ -231,14 +247,14 @@ export async function POST(request: Request) {
     module: partyType,
     action: `${partyType}.credit_${kind}`,
     recordId: partyId,
-    previousValue: { balanceOwed: balanceBefore },
-    newValue: { balanceOwed: roundMoney(balanceBefore + signed), amount: signed },
+    previousValue: { balanceOwed: applied.previousBalance },
+    newValue: { balanceOwed: applied.newBalance, amount: signed },
   });
 
   return NextResponse.json(
     {
       entry,
-      balanceOwed: roundMoney(balanceBefore + signed),
+      balanceOwed: applied.newBalance,
     },
     { status: 201 },
   );

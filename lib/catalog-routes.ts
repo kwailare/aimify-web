@@ -12,7 +12,7 @@ const PLURAL: Record<CatalogKind, string> = {
 };
 
 export async function listOptions(request: Request, kind: CatalogKind) {
-  const context = await guardApi(request);
+  const context = await guardApi(request, "catalog.view");
 
   if (context instanceof NextResponse) return context;
 
@@ -31,7 +31,7 @@ export async function listOptions(request: Request, kind: CatalogKind) {
 }
 
 export async function createOption(request: Request, kind: CatalogKind) {
-  const context = await guardApi(request, "catalog.write");
+  const context = await guardApi(request, "catalog.create");
 
   if (context instanceof NextResponse) return context;
 
@@ -77,7 +77,7 @@ export async function deleteOption(
   kind: CatalogKind,
   id: string,
 ) {
-  const context = await guardApi(request, "catalog.write");
+  const context = await guardApi(request, "catalog.delete");
 
   if (context instanceof NextResponse) return context;
 

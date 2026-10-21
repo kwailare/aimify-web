@@ -1,54 +1,214 @@
-export const PERMISSIONS = [
-  "products.write",
-  "products.archive",
-  "catalog.write",
-  "warehouses.manage",
-  "stock.out",
-  "stock.adjust",
-  "customers.read",
-  "customers.write",
-  "suppliers.read",
-  "suppliers.write",
-  "credit.record",
-  "team.manage",
-  "setup.complete",
+import { ROLES } from "@/lib/roles";
+
+export const PERMISSION_MODULES = [
+  {
+    module: "products",
+    label: "Products",
+    actions: [
+      { key: "products.view", label: "View" },
+      { key: "products.create", label: "Add" },
+      { key: "products.edit", label: "Edit" },
+      { key: "products.archive", label: "Archive" },
+    ],
+  },
+  {
+    module: "catalog",
+    label: "Categories & units",
+    actions: [
+      { key: "catalog.view", label: "View" },
+      { key: "catalog.create", label: "Add" },
+      { key: "catalog.delete", label: "Delete" },
+    ],
+  },
+  {
+    module: "stock",
+    label: "Stock movements",
+    actions: [
+      { key: "stock.view", label: "View" },
+      { key: "stock.in", label: "Stock in" },
+      { key: "stock.out", label: "Stock out" },
+      { key: "stock.adjust", label: "Adjust & count" },
+    ],
+  },
+  {
+    module: "warehouses",
+    label: "Warehouses",
+    actions: [
+      { key: "warehouses.view", label: "View" },
+      { key: "warehouses.create", label: "Add" },
+      { key: "warehouses.edit", label: "Edit" },
+      { key: "warehouses.disable", label: "Disable" },
+    ],
+  },
+  {
+    module: "customers",
+    label: "Customers",
+    actions: [
+      { key: "customers.view", label: "View" },
+      { key: "customers.create", label: "Add" },
+      { key: "customers.edit", label: "Edit" },
+      { key: "customers.archive", label: "Archive" },
+    ],
+  },
+  {
+    module: "suppliers",
+    label: "Suppliers",
+    actions: [
+      { key: "suppliers.view", label: "View" },
+      { key: "suppliers.create", label: "Add" },
+      { key: "suppliers.edit", label: "Edit" },
+      { key: "suppliers.archive", label: "Archive" },
+    ],
+  },
+  {
+    module: "credit",
+    label: "Credit ledger",
+    actions: [{ key: "credit.record", label: "Record entries" }],
+  },
 ] as const;
 
-export type Permission = (typeof PERMISSIONS)[number];
+type ModuleAction = (typeof PERMISSION_MODULES)[number]["actions"][number];
 
+export type EditablePermission = ModuleAction["key"];
+
+export const EDITABLE_PERMISSIONS: readonly EditablePermission[] = PERMISSION_MODULES.flatMap(
+  (group) => group.actions.map((action) => action.key),
+);
+
+// Account administration stays with Owners and Administrators and can't be
+// handed to other roles.
+export const FIXED_PERMISSIONS = ["team.manage", "setup.complete"] as const;
+
+export type FixedPermission = (typeof FIXED_PERMISSIONS)[number];
+export type Permission = EditablePermission | FixedPermission;
+
+export const PERMISSIONS: readonly Permission[] = [...EDITABLE_PERMISSIONS, ...FIXED_PERMISSIONS];
+
+export const EDITABLE_ROLES = ROLES.filter((role) => role !== "Owner");
+
+const EVERYONE = [...ROLES];
 const MANAGERS = ["Owner", "Administrator", "Warehouse Manager"];
 const STOCK_STAFF = [...MANAGERS, "Inventory Staff"];
-
-// Money records are narrower than stock: customers belong to whoever sells,
-// suppliers to whoever buys, and recording payments to finance and above.
 const SELLERS = ["Owner", "Administrator", "Sales Staff"];
 const FINANCE = ["Owner", "Administrator", "Accountant / Finance"];
 const ADMINS = ["Owner", "Administrator"];
 
-const GRANTS: Record<Permission, readonly string[]> = {
-  "products.write": STOCK_STAFF,
+const DEFAULT_GRANTS: Record<EditablePermission, readonly string[]> = {
+  "products.view": EVERYONE,
+  "products.create": STOCK_STAFF,
+  "products.edit": STOCK_STAFF,
   "products.archive": MANAGERS,
-  "catalog.write": STOCK_STAFF,
-  "warehouses.manage": MANAGERS,
+  "catalog.view": EVERYONE,
+  "catalog.create": STOCK_STAFF,
+  "catalog.delete": STOCK_STAFF,
+  "stock.view": EVERYONE,
+  "stock.in": STOCK_STAFF,
   "stock.out": [...STOCK_STAFF, "Sales Staff"],
   "stock.adjust": STOCK_STAFF,
-  "customers.read": [...SELLERS, "Accountant / Finance"],
-  "customers.write": SELLERS,
-  "suppliers.read": [...MANAGERS, "Accountant / Finance"],
-  "suppliers.write": MANAGERS,
+  "warehouses.view": EVERYONE,
+  "warehouses.create": MANAGERS,
+  "warehouses.edit": MANAGERS,
+  "warehouses.disable": MANAGERS,
+  "customers.view": [...SELLERS, "Accountant / Finance"],
+  "customers.create": SELLERS,
+  "customers.edit": SELLERS,
+  "customers.archive": SELLERS,
+  "suppliers.view": [...MANAGERS, "Accountant / Finance"],
+  "suppliers.create": MANAGERS,
+  "suppliers.edit": MANAGERS,
+  "suppliers.archive": MANAGERS,
   "credit.record": FINANCE,
+};
+
+const FIXED_GRANTS: Record<FixedPermission, readonly string[]> = {
   "team.manage": ADMINS,
   "setup.complete": ADMINS,
 };
 
-export function can(role: string | null | undefined, permission: Permission) {
-  return Boolean(role) && GRANTS[permission].includes(role as string);
+export function isEditablePermission(value: string): value is EditablePermission {
+  return (EDITABLE_PERMISSIONS as readonly string[]).includes(value);
 }
 
-export function permissionsFor(role: string | null | undefined) {
-  return PERMISSIONS.filter((permission) => can(role, permission));
+export function defaultPermissions(role: string): EditablePermission[] {
+  return EDITABLE_PERMISSIONS.filter((key) => DEFAULT_GRANTS[key].includes(role));
+}
+
+// What each action can't work without: every action needs its own module's
+// view, recording stock means picking a product and a warehouse, and the
+// product form picks a category and unit.
+const EXTRA_REQUIREMENTS: Partial<Record<EditablePermission, EditablePermission[]>> = {
+  "products.create": ["catalog.view"],
+  "products.edit": ["catalog.view"],
+  "stock.in": ["products.view", "warehouses.view"],
+  "stock.out": ["products.view", "warehouses.view"],
+  "stock.adjust": ["products.view", "warehouses.view"],
+};
+
+export function requiredBy(key: EditablePermission): EditablePermission[] {
+  const [module] = key.split(".");
+  const view = `${module}.view`;
+  const own = isEditablePermission(view) && view !== key ? [view] : [];
+  return [...own, ...(EXTRA_REQUIREMENTS[key] ?? [])];
+}
+
+export function normalizePermissions(keys: Iterable<string>): EditablePermission[] {
+  const chosen = new Set<EditablePermission>([...keys].filter(isEditablePermission));
+
+  for (const key of [...chosen]) {
+    for (const needed of requiredBy(key)) chosen.add(needed);
+  }
+
+  return EDITABLE_PERMISSIONS.filter((key) => chosen.has(key));
+}
+
+// Removing a permission also removes every action that can't work without it.
+export function withoutPermission(keys: Iterable<string>, removed: EditablePermission) {
+  const remaining = new Set([...keys].filter(isEditablePermission));
+  remaining.delete(removed);
+
+  for (const key of [...remaining]) {
+    if (requiredBy(key).includes(removed)) remaining.delete(key);
+  }
+
+  return EDITABLE_PERMISSIONS.filter((key) => remaining.has(key));
+}
+
+export function resolvePermissions(
+  role: string | null | undefined,
+  custom: readonly string[] | null,
+): Set<Permission> {
+  if (!role) return new Set();
+
+  const editable =
+    role === "Owner"
+      ? EDITABLE_PERMISSIONS
+      : custom
+        ? normalizePermissions(custom)
+        : defaultPermissions(role);
+
+  const fixed = FIXED_PERMISSIONS.filter((key) => FIXED_GRANTS[key].includes(role));
+
+  return new Set<Permission>([...editable, ...fixed]);
+}
+
+// Keys from before per-module permissions, still sent on /me so desktop app
+// builds released earlier keep showing the right controls.
+export function legacyPermissions(granted: ReadonlySet<string>): string[] {
+  const any = (...keys: string[]) => keys.some((key) => granted.has(key));
+  const legacy: [string, boolean][] = [
+    ["products.write", any("products.create", "products.edit")],
+    ["catalog.write", any("catalog.create", "catalog.delete")],
+    ["warehouses.manage", any("warehouses.create", "warehouses.edit", "warehouses.disable")],
+    ["customers.read", any("customers.view")],
+    ["customers.write", any("customers.create", "customers.edit", "customers.archive")],
+    ["suppliers.read", any("suppliers.view")],
+    ["suppliers.write", any("suppliers.create", "suppliers.edit", "suppliers.archive")],
+  ];
+  return legacy.filter(([, has]) => has).map(([key]) => key);
 }
 
 export function movementPermission(type: string): Permission {
-  return type === "stock_out" ? "stock.out" : "stock.adjust";
+  if (type === "stock_in") return "stock.in";
+  if (type === "stock_out") return "stock.out";
+  return "stock.adjust";
 }

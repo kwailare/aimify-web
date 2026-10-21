@@ -38,8 +38,8 @@ const MODULES = [
     phase: "MVP",
     items: [
       [D, "Six roles: Owner, Administrator, Warehouse Manager, Sales Staff, Inventory Staff, Accountant/Finance", "Enforced on the website, in the API and in which desktop screens are visible."],
-      [P, "Granular per-module permissions (view / create / edit / delete)", "Each role has a fixed, per-module permission set. Permissions can't be customised per person."],
-      [D, "Owner can assign roles to staff", "Owners and Administrators invite people, change roles and remove members."],
+      [D, "Granular per-module permissions (view / create / edit / delete)", "View, add, edit and archive/delete per module (products, categories & units, stock in/out/adjust, warehouses, customers, suppliers, credit), checked on every API call and deciding which desktop screens and buttons show."],
+      [D, "Owner can assign roles and permissions to staff", "Owners and Administrators invite people and change roles; the Owner edits each role's permissions on the website (Team, then Roles & permissions), with reset to defaults and an audit trail. Set per role, not per person."],
     ],
   },
   {

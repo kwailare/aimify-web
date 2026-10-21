@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { and, eq, ne } from "drizzle-orm";
 import { db } from "@/db";
 import { products } from "@/db/schema";
-import { guardApi } from "@/lib/api-context";
+import { denyIfChangeForbidden, guardApi } from "@/lib/api-context";
 import { checkPlanLimit } from "@/lib/plans";
 import { logAudit } from "@/lib/audit";
 import { registerCatalogOption } from "@/lib/catalog";
@@ -25,7 +25,7 @@ const NOT_FOUND = () =>
   NextResponse.json({ error: "Product not found." }, { status: 404 });
 
 export async function GET(request: Request, { params }: Params) {
-  const context = await guardApi(request);
+  const context = await guardApi(request, "products.view");
 
   if (context instanceof NextResponse) return context;
 
@@ -39,7 +39,7 @@ export async function GET(request: Request, { params }: Params) {
 }
 
 export async function PATCH(request: Request, { params }: Params) {
-  const context = await guardApi(request, "products.write");
+  const context = await guardApi(request);
 
   if (context instanceof NextResponse) return context;
 
@@ -55,6 +55,13 @@ export async function PATCH(request: Request, { params }: Params) {
   }
 
   const { data } = parsed;
+
+  const denied = denyIfChangeForbidden(context, data, {
+    status: "products.archive",
+    fields: "products.edit",
+  });
+
+  if (denied) return denied;
 
   if (Object.keys(data).length === 0) {
     return NextResponse.json(

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { and, asc, eq, ne } from "drizzle-orm";
 import { db } from "@/db";
 import { customers, suppliers } from "@/db/schema";
-import { guardApi } from "@/lib/api-context";
+import { denyIfChangeForbidden, guardApi } from "@/lib/api-context";
 import { logAudit } from "@/lib/audit";
 import { roundMoney, type PartyType } from "@/lib/credit";
 import { parsePartyFields } from "@/lib/party-input";
@@ -18,8 +18,10 @@ const CONFIG = {
     table: customers,
     plural: "customers",
     label: "Customer",
-    read: "customers.read" as Permission,
-    write: "customers.write" as Permission,
+    view: "customers.view" as Permission,
+    create: "customers.create" as Permission,
+    edit: "customers.edit" as Permission,
+    archive: "customers.archive" as Permission,
     contactPerson: false,
     creditLimit: true,
   },
@@ -27,8 +29,10 @@ const CONFIG = {
     table: suppliers,
     plural: "suppliers",
     label: "Supplier",
-    read: "suppliers.read" as Permission,
-    write: "suppliers.write" as Permission,
+    view: "suppliers.view" as Permission,
+    create: "suppliers.create" as Permission,
+    edit: "suppliers.edit" as Permission,
+    archive: "suppliers.archive" as Permission,
     contactPerson: true,
     creditLimit: false,
   },
@@ -52,7 +56,7 @@ function withBalance(row: Row) {
 
 export async function listParties(request: Request, type: PartyType) {
   const config = CONFIG[type];
-  const context = await guardApi(request, config.read);
+  const context = await guardApi(request, config.view);
 
   if (context instanceof NextResponse) return context;
 
@@ -78,7 +82,7 @@ export async function listParties(request: Request, type: PartyType) {
 
 export async function createParty(request: Request, type: PartyType) {
   const config = CONFIG[type];
-  const context = await guardApi(request, config.write);
+  const context = await guardApi(request, config.create);
 
   if (context instanceof NextResponse) return context;
 
@@ -124,7 +128,7 @@ export async function createParty(request: Request, type: PartyType) {
 
 export async function getParty(request: Request, type: PartyType, id: string) {
   const config = CONFIG[type];
-  const context = await guardApi(request, config.read);
+  const context = await guardApi(request, config.view);
 
   if (context instanceof NextResponse) return context;
 
@@ -150,7 +154,7 @@ export async function getParty(request: Request, type: PartyType, id: string) {
 
 export async function updateParty(request: Request, type: PartyType, id: string) {
   const config = CONFIG[type];
-  const context = await guardApi(request, config.write);
+  const context = await guardApi(request);
 
   if (context instanceof NextResponse) return context;
 
@@ -167,6 +171,13 @@ export async function updateParty(request: Request, type: PartyType, id: string)
   }
 
   const { data } = parsed;
+
+  const denied = denyIfChangeForbidden(context, data, {
+    status: config.archive,
+    fields: config.edit,
+  });
+
+  if (denied) return denied;
 
   if (Object.keys(data).length === 0) {
     return NextResponse.json(
@@ -231,7 +242,7 @@ export async function updateParty(request: Request, type: PartyType, id: string)
 // Archives rather than deletes: the credit history has to stay intact.
 export async function archiveParty(request: Request, type: PartyType, id: string) {
   const config = CONFIG[type];
-  const context = await guardApi(request, config.write);
+  const context = await guardApi(request, config.archive);
 
   if (context instanceof NextResponse) return context;
 

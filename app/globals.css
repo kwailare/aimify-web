@@ -4407,3 +4407,115 @@ select optgroup {
 .admin-legend-dot.is-activated {
   background: #2f9e5b;
 }
+
+.perm-card {
+  display: grid;
+  gap: 1rem;
+}
+
+.perm-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.perm-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: 1px solid rgb(216 139 0 / 30%);
+  border-radius: 999px;
+  background: transparent;
+  padding: 0.4rem 0.9rem;
+  color: var(--aimify-ink);
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.perm-tab:hover {
+  background: rgb(242 178 51 / 12%);
+}
+
+.perm-tab.is-active {
+  border-color: var(--aimify-gold);
+  background: var(--aimify-gold);
+  color: var(--aimify-charcoal);
+}
+
+.perm-tab:focus-visible {
+  outline: 3px solid var(--aimify-focus);
+  outline-offset: 2px;
+}
+
+.perm-tab-dot {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 999px;
+  background: var(--aimify-warning);
+}
+
+.perm-grid {
+  display: grid;
+}
+
+.perm-row {
+  display: grid;
+  grid-template-columns: minmax(9rem, 13rem) 1fr;
+  gap: 0.75rem;
+  align-items: center;
+  border-bottom: 1px solid rgb(36 36 36 / 8%);
+  padding: 0.7rem 0;
+}
+
+.perm-module {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--aimify-ink);
+}
+
+.perm-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.25rem;
+}
+
+.perm-fixed {
+  color: var(--aimify-muted);
+  font-size: 0.8rem;
+}
+
+.perm-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.82rem;
+  color: var(--aimify-ink);
+  cursor: pointer;
+}
+
+.perm-check input {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--aimify-gold);
+}
+
+.perm-check:has(input:disabled) {
+  cursor: default;
+}
+
+.perm-buttons {
+  align-items: center;
+}
+
+.dark .perm-row {
+  border-bottom-color: rgb(255 255 255 / 10%);
+}
+
+@media (max-width: 640px) {
+  .perm-row {
+    grid-template-columns: 1fr;
+    gap: 0.4rem;
+  }
+}

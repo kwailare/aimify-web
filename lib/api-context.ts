@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { verifyApiToken } from "@/lib/api-auth";
 import { getOrgContextForUser } from "@/lib/org";
-import { can, type Permission } from "@/lib/permissions";
+import type { Permission } from "@/lib/permissions";
+import { getPermissionsFor } from "@/lib/role-permissions";
 import { blockedMessage, hasProductAccess } from "@/lib/subscription";
 
 export type ApiOrgContext = {
@@ -9,6 +10,7 @@ export type ApiOrgContext = {
   organizationId: string;
   role: string;
   subscriptionStatus: string;
+  permissions: ReadonlySet<Permission>;
 };
 
 export async function getApiOrgContext(
@@ -26,11 +28,15 @@ export async function getApiOrgContext(
     return null;
   }
 
+  const organizationId = context.membership.organization.id;
+  const role = context.membership.role;
+
   return {
     userId,
-    organizationId: context.membership.organization.id,
-    role: context.membership.role,
+    organizationId,
+    role,
     subscriptionStatus: context.membership.organization.subscriptionStatus,
+    permissions: await getPermissionsFor(organizationId, role),
   };
 }
 
@@ -38,7 +44,7 @@ export function denyIfForbidden(
   context: ApiOrgContext,
   permission: Permission,
 ): NextResponse | null {
-  if (can(context.role, permission)) {
+  if (context.permissions.has(permission)) {
     return null;
   }
 
@@ -51,6 +57,27 @@ export function denyIfForbidden(
     },
     { status: 403 },
   );
+}
+
+// An update can change a record's fields, its status (archive, disable,
+// restore) or both, and each needs its own permission.
+export function denyIfChangeForbidden(
+  context: ApiOrgContext,
+  changes: object,
+  permissions: { status: Permission; fields: Permission },
+): NextResponse | null {
+  const keys = Object.keys(changes);
+
+  if (keys.includes("status")) {
+    const denied = denyIfForbidden(context, permissions.status);
+    if (denied) return denied;
+  }
+
+  if (keys.some((key) => key !== "status")) {
+    return denyIfForbidden(context, permissions.fields);
+  }
+
+  return null;
 }
 
 export async function guardApi(

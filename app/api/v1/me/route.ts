@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { verifyApiToken } from "@/lib/api-auth";
 import { getOrgContextForUser } from "@/lib/org";
-import { permissionsFor } from "@/lib/permissions";
+import { legacyPermissions } from "@/lib/permissions";
+import { getPermissionsFor } from "@/lib/role-permissions";
 import { getOrgPlan, getUsage } from "@/lib/plans";
 
 export async function GET(request: Request) {
@@ -18,9 +19,11 @@ export async function GET(request: Request) {
   }
 
   const organizationId = context.membership?.organization.id;
-  const [plan, usage] = organizationId
-    ? await Promise.all([getOrgPlan(organizationId), getUsage(organizationId)])
-    : [null, null];
+  const [plan, usage, permissions] = await Promise.all([
+    organizationId ? getOrgPlan(organizationId) : null,
+    organizationId ? getUsage(organizationId) : null,
+    getPermissionsFor(organizationId, context.membership?.role),
+  ]);
 
   return NextResponse.json({
     user: {
@@ -54,7 +57,7 @@ export async function GET(request: Request) {
         }
       : null,
     role: context.membership?.role ?? null,
-    permissions: permissionsFor(context.membership?.role),
+    permissions: [...permissions, ...legacyPermissions(permissions)],
     plan: plan
       ? {
           name: plan.name,

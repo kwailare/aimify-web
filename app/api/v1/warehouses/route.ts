@@ -9,7 +9,7 @@ import { parseWarehouseFields } from "@/lib/warehouse-input";
 import { syncPrimaryWarehouseName } from "@/lib/warehouses";
 
 export async function GET(request: Request) {
-  const context = await guardApi(request);
+  const context = await guardApi(request, "warehouses.view");
 
   if (context instanceof NextResponse) return context;
 
@@ -23,7 +23,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const context = await guardApi(request, "warehouses.manage");
+  const context = await guardApi(request, "warehouses.create");
 
   if (context instanceof NextResponse) return context;
 

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { warehouses } from "@/db/schema";
-import { guardApi } from "@/lib/api-context";
+import { denyIfChangeForbidden, guardApi } from "@/lib/api-context";
 import { logAudit } from "@/lib/audit";
 import { checkPlanLimit } from "@/lib/plans";
 import { isUuid } from "@/lib/validation";
@@ -15,7 +15,7 @@ const NOT_FOUND = () =>
   NextResponse.json({ error: "Warehouse not found." }, { status: 404 });
 
 export async function PATCH(request: Request, { params }: Params) {
-  const context = await guardApi(request, "warehouses.manage");
+  const context = await guardApi(request);
 
   if (context instanceof NextResponse) return context;
 
@@ -31,6 +31,13 @@ export async function PATCH(request: Request, { params }: Params) {
   }
 
   const { data } = parsed;
+
+  const denied = denyIfChangeForbidden(context, data, {
+    status: "warehouses.disable",
+    fields: "warehouses.edit",
+  });
+
+  if (denied) return denied;
 
   if (Object.keys(data).length === 0) {
     return NextResponse.json(

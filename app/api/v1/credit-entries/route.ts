@@ -13,7 +13,6 @@ import {
   reverseBalanceChange,
   signedAmount,
 } from "@/lib/credit";
-import { can } from "@/lib/permissions";
 import { isUuid } from "@/lib/validation";
 
 const MAX_LIMIT = 200;
@@ -47,14 +46,14 @@ export async function GET(request: Request) {
   // Someone may read the customer ledger without the supplier one (and the
   // other way round), so each type needs its own read permission.
   const readable = (["customer", "supplier"] as const).filter((type) =>
-    can(context.role, type === "customer" ? "customers.read" : "suppliers.read"),
+    context.permissions.has(type === "customer" ? "customers.view" : "suppliers.view"),
   );
   const wanted = partyType ? [partyType] : readable;
 
   if (partyType) {
     const denied = denyIfForbidden(
       context,
-      partyType === "customer" ? "customers.read" : "suppliers.read",
+      partyType === "customer" ? "customers.view" : "suppliers.view",
     );
 
     if (denied) return denied;
@@ -114,6 +113,13 @@ export async function POST(request: Request) {
       { status: 400 },
     );
   }
+
+  const cannotSee = denyIfForbidden(
+    context,
+    partyType === "customer" ? "customers.view" : "suppliers.view",
+  );
+
+  if (cannotSee) return cannotSee;
 
   if (typeof amount !== "number" || !Number.isFinite(amount) || amount === 0) {
     return NextResponse.json(

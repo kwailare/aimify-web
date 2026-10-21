@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { asc, eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { TeamManager } from "@/components/team-manager";
@@ -55,6 +56,16 @@ export default async function DashboardTeamPage() {
             ? " Invite people by email and choose what they do."
             : " Only Owners and Administrators can change the team."}
         </p>
+        {canManage ? (
+          <p className="dash-page-subtitle">
+            <Link href="/dashboard/team/permissions" className="dash-banner-link">
+              Roles &amp; permissions →
+            </Link>{" "}
+            {role === "Owner"
+              ? "Choose what each role can see and do."
+              : "See what each role can see and do."}
+          </p>
+        ) : null}
       </div>
 
       <TeamManager

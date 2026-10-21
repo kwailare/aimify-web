@@ -12,7 +12,7 @@ import { getActiveWarehouse } from "@/lib/warehouses";
 const VALID_TYPES = new Set(["stock_in", "stock_out", "adjustment", "count"]);
 
 export async function GET(request: Request) {
-  const context = await guardApi(request);
+  const context = await guardApi(request, "stock.view");
 
   if (context instanceof NextResponse) return context;
 

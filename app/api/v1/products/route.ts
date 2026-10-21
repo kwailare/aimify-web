@@ -9,7 +9,7 @@ import { registerCatalogOption } from "@/lib/catalog";
 import { checkStockBounds, parseProductFields } from "@/lib/product-input";
 
 export async function GET(request: Request) {
-  const context = await guardApi(request);
+  const context = await guardApi(request, "products.view");
 
   if (context instanceof NextResponse) return context;
 
@@ -31,7 +31,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const context = await guardApi(request, "products.write");
+  const context = await guardApi(request, "products.create");
 
   if (context instanceof NextResponse) return context;
 

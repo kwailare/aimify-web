@@ -61,6 +61,8 @@ const actionLabels: Record<string, string> = {
   "team.invite_revoked": "Invitation revoked",
   "team.invite_accepted": "Invitation accepted",
   "team.role_changed": "Team role changed",
+  "team.permissions_updated": "Role permissions changed",
+  "team.permissions_reset": "Role permissions reset to defaults",
   "team.member_removed": "Team member removed",
   "product.created": "Product created",
   "product.updated": "Product updated",

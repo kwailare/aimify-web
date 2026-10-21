@@ -461,3 +461,18 @@ export const paymentEvents = pgTable("payment_events", {
   reference: text(),
   createdAt: timestamp().defaultNow().notNull(),
 });
+
+export const rolePermissions = pgTable(
+  "role_permissions",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    organizationId: uuid()
+      .notNull()
+      .references(() => organizations.id),
+    role: text().notNull(),
+    permissions: text().array().notNull(),
+    updatedBy: uuid().references(() => users.id),
+    updatedAt: timestamp().defaultNow().notNull(),
+  },
+  (table) => [unique().on(table.organizationId, table.role)],
+);

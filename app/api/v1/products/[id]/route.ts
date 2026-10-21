@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { products } from "@/db/schema";
 import { denyIfChangeForbidden, guardApi } from "@/lib/api-context";
 import { checkPlanLimit } from "@/lib/plans";
+import { withWarehouseStock } from "@/lib/product-stock";
 import { logAudit } from "@/lib/audit";
 import { registerCatalogOption } from "@/lib/catalog";
 import { checkStockBounds, checkSupplier, parseProductFields } from "@/lib/product-input";
@@ -35,7 +36,7 @@ export async function GET(request: Request, { params }: Params) {
 
   const product = await findProduct(context.organizationId, id);
 
-  return product ? NextResponse.json({ product }) : NOT_FOUND();
+  return product ? NextResponse.json({ product: (await withWarehouseStock(context.organizationId, [product]))[0] }) : NOT_FOUND();
 }
 
 export async function PATCH(request: Request, { params }: Params) {
@@ -163,7 +164,7 @@ export async function PATCH(request: Request, { params }: Params) {
     newValue,
   });
 
-  return NextResponse.json({ product });
+  return NextResponse.json({ product: (await withWarehouseStock(context.organizationId, [product]))[0] });
 }
 
 export async function DELETE(request: Request, { params }: Params) {
@@ -194,5 +195,5 @@ export async function DELETE(request: Request, { params }: Params) {
     newValue: { sku: product.sku, name: product.name },
   });
 
-  return NextResponse.json({ product });
+  return NextResponse.json({ product: (await withWarehouseStock(context.organizationId, [product]))[0] });
 }

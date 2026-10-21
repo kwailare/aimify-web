@@ -164,6 +164,30 @@ export const stockMovements = pgTable("stock_movements", {
   createdAt: timestamp().defaultNow().notNull(),
 });
 
+// Stock of each product in each warehouse. products.currentStock is kept as
+// the total across warehouses, changed in the same statement as this.
+export const productStock = pgTable(
+  "product_stock",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    organizationId: uuid()
+      .notNull()
+      .references(() => organizations.id),
+    productId: uuid()
+      .notNull()
+      .references(() => products.id),
+    warehouseId: uuid()
+      .notNull()
+      .references(() => warehouses.id),
+    quantity: integer().notNull().default(0),
+    updatedAt: timestamp().defaultNow().notNull(),
+  },
+  (table) => [
+    unique().on(table.productId, table.warehouseId),
+    index("product_stock_warehouse_idx").on(table.organizationId, table.warehouseId),
+  ],
+);
+
 export const loginAttempts = pgTable(
   "login_attempts",
   {

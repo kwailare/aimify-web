@@ -5,6 +5,7 @@ import { warehouses } from "@/db/schema";
 import { denyIfChangeForbidden, guardApi } from "@/lib/api-context";
 import { logAudit } from "@/lib/audit";
 import { checkPlanLimit } from "@/lib/plans";
+import { getHeldStock } from "@/lib/product-stock";
 import { isUuid } from "@/lib/validation";
 import { parseWarehouseFields } from "@/lib/warehouse-input";
 import { syncPrimaryWarehouseName } from "@/lib/warehouses";
@@ -58,6 +59,26 @@ export async function PATCH(request: Request, { params }: Params) {
     .limit(1);
 
   if (!before) return NOT_FOUND();
+
+  if (data.status === "inactive" && before.status === "active") {
+    const held = await getHeldStock(context.organizationId, id);
+
+    if (held.length > 0) {
+      const units = held.reduce((sum, row) => sum + row.quantity, 0);
+      const listed = held.slice(0, 5).map((row) => `${row.name} (${row.quantity})`).join(", ");
+      const more = held.length > 5 ? ` and ${held.length - 5} more` : "";
+
+      return NextResponse.json(
+        {
+          error: `${before.name} still holds stock: ${listed}${more}. Move it out with stock out or an adjustment before disabling the warehouse.`,
+          code: "warehouse_not_empty",
+          units,
+          products: held.length,
+        },
+        { status: 409 },
+      );
+    }
+  }
 
   if (data.status === "active" && before.status !== "active") {
     const limit = await checkPlanLimit(context.organizationId, "warehouses");

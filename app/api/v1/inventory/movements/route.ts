@@ -1,10 +1,11 @@
 import { NextResponse, after } from "next/server";
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { products, stockMovements } from "@/db/schema";
+import { stockMovements } from "@/db/schema";
 import { denyIfForbidden, guardApi } from "@/lib/api-context";
 import { movementPermission } from "@/lib/permissions";
 import { logAudit } from "@/lib/audit";
+import { applyMovement } from "@/lib/product-stock";
 import { detectStockAlert, notifyStockAlert } from "@/lib/stock-alerts";
 import { isUuid } from "@/lib/validation";
 import { getActiveWarehouse } from "@/lib/warehouses";
@@ -18,10 +19,11 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url);
   const productId = searchParams.get("productId");
+  const warehouseId = searchParams.get("warehouseId");
 
-  if (productId && !isUuid(productId)) {
+  if ((productId && !isUuid(productId)) || (warehouseId && !isUuid(warehouseId))) {
     return NextResponse.json(
-      { error: "productId must be a valid id." },
+      { error: "productId and warehouseId must be valid ids." },
       { status: 400 },
     );
   }
@@ -30,6 +32,10 @@ export async function GET(request: Request) {
 
   if (productId) {
     conditions.push(eq(stockMovements.productId, productId));
+  }
+
+  if (warehouseId) {
+    conditions.push(eq(stockMovements.warehouseId, warehouseId));
   }
 
   const rows = await db
@@ -96,31 +102,33 @@ export async function POST(request: Request) {
     );
   }
 
-  const [updated] = await db
-    .update(products)
-    .set({
-      currentStock: sql`${products.currentStock} + ${quantity}`,
-      updatedAt: new Date(),
-    })
-    .where(
-      and(
-        eq(products.id, productId),
-        eq(products.organizationId, context.organizationId),
-      ),
-    )
-    .returning({
-      currentStock: products.currentStock,
-      minStock: products.minStock,
-      name: products.name,
-      sku: products.sku,
-    });
+  const outcome = await applyMovement({
+    organizationId: context.organizationId,
+    productId,
+    warehouseId,
+    quantity,
+    refuseBelowZero: type === "stock_out",
+  });
 
-  if (!updated) {
+  if (outcome.status === "not_found") {
     return NextResponse.json({ error: "Product not found." }, { status: 404 });
   }
 
-  const newStock = updated.currentStock;
+  if (outcome.status === "insufficient") {
+    return NextResponse.json(
+      {
+        error: `${warehouse.name} has only ${outcome.available} of this product, so ${-quantity} can't be taken out.`,
+        code: "insufficient_stock",
+        available: outcome.available,
+      },
+      { status: 409 },
+    );
+  }
+
+  const updated = outcome.product;
+  const newStock = outcome.warehouseStock;
   const previousStock = newStock - quantity;
+  const previousTotal = updated.currentStock - quantity;
 
   const [movement] = await db
     .insert(stockMovements)
@@ -137,14 +145,15 @@ export async function POST(request: Request) {
     })
     .returning();
 
-  const alert = detectStockAlert(previousStock, newStock, updated.minStock);
+  const alert = detectStockAlert(previousTotal, updated.currentStock, updated.minStock);
 
   if (alert) {
     after(() =>
       notifyStockAlert(context.organizationId, alert, {
         name: updated.name,
         sku: updated.sku,
-        currentStock: newStock,
+        productId,
+        currentStock: updated.currentStock,
         minStock: updated.minStock,
       }),
     );
@@ -156,12 +165,12 @@ export async function POST(request: Request) {
     module: "inventory",
     action: `inventory.${type}`,
     recordId: productId,
-    previousValue: { currentStock: previousStock },
-    newValue: { currentStock: newStock },
+    previousValue: { warehouseId, warehouseStock: previousStock, currentStock: previousTotal },
+    newValue: { warehouseId, warehouseStock: newStock, currentStock: updated.currentStock },
   });
 
   return NextResponse.json(
-    { movement, currentStock: newStock, alert },
+    { movement, currentStock: updated.currentStock, warehouseStock: newStock, alert },
     { status: 201 },
   );
 }

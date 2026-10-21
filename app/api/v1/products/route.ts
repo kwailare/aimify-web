@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { products } from "@/db/schema";
 import { guardApi } from "@/lib/api-context";
 import { checkPlanLimit } from "@/lib/plans";
+import { withWarehouseStock } from "@/lib/product-stock";
 import { logAudit } from "@/lib/audit";
 import { registerCatalogOption } from "@/lib/catalog";
 import { checkStockBounds, checkSupplier, parseProductFields } from "@/lib/product-input";
@@ -37,7 +38,9 @@ export async function GET(request: Request) {
     .from(products)
     .where(and(...conditions));
 
-  return NextResponse.json({ products: rows });
+  return NextResponse.json({
+    products: await withWarehouseStock(context.organizationId, rows),
+  });
 }
 
 export async function POST(request: Request) {
@@ -127,5 +130,5 @@ export async function POST(request: Request) {
     newValue: { sku: product.sku, name: product.name },
   });
 
-  return NextResponse.json({ product }, { status: 201 });
+  return NextResponse.json({ product: { ...product, stockByWarehouse: [] } }, { status: 201 });
 }

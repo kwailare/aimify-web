@@ -59,7 +59,7 @@ const MODULES = [
       [D, "Stock in, stock out, stock adjustment, stock count", "Atomic updates; roles limit which types each person can record."],
       [D, "Full stock movement history (never a silent overwrite)", "Ledger records before/after stock, user and reason."],
       [D, "Low-stock and out-of-stock alerts", "Returned by the API, listed in the desktop app and emailed."],
-      [P, "Inventory valuation", "Stock value at cost and retail is shown on the web dashboard and desktop reports. No valuation report or per-warehouse valuation."],
+      [P, "Inventory valuation", "Stock value at cost and retail on the web dashboard and desktop reports, and per warehouse on the Warehouses screen. No valuation report yet."],
     ],
   },
   {
@@ -68,7 +68,7 @@ const MODULES = [
     items: [
       [D, "Warehouse profile: name, address, manager, phone, status", ""],
       [D, "Create, edit, disable warehouses", ""],
-      [N, "Per-warehouse stock view and valuation", "Stock is held organization-wide on each product."],
+      [D, "Per-warehouse stock view and valuation", "Each product has a balance per warehouse (total kept alongside). Inventory filters by warehouse; each warehouse shows its units and value. Stock out can't take a warehouse below zero, and a warehouse can only be disabled when empty."],
       [D, "Single warehouse in MVP", "Enforced by plan limits (one active warehouse on the default plan)."],
     ],
   },
@@ -76,7 +76,7 @@ const MODULES = [
     title: "Stock Transfer",
     phase: "Phase 2",
     items: [
-      [N, "Transfer products between warehouses (source, destination, quantity, date, user, reason)", "Needs per-warehouse stock first."],
+      [N, "Transfer products between warehouses (source, destination, quantity, date, user, reason)", "Per-warehouse stock is in place, so this can be built."],
       [N, "Reference number and transfer status per transfer", ""],
     ],
   },

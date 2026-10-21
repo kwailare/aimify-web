@@ -5,6 +5,7 @@ import { warehouses } from "@/db/schema";
 import { guardApi } from "@/lib/api-context";
 import { logAudit } from "@/lib/audit";
 import { checkPlanLimit } from "@/lib/plans";
+import { getWarehouseSummaries, summaryFor } from "@/lib/product-stock";
 import { parseWarehouseFields } from "@/lib/warehouse-input";
 import { syncPrimaryWarehouseName } from "@/lib/warehouses";
 
@@ -19,7 +20,11 @@ export async function GET(request: Request) {
     .where(eq(warehouses.organizationId, context.organizationId))
     .orderBy(asc(warehouses.createdAt));
 
-  return NextResponse.json({ warehouses: rows });
+  const summaries = await getWarehouseSummaries(context.organizationId);
+
+  return NextResponse.json({
+    warehouses: rows.map((row) => ({ ...row, stock: summaryFor(summaries, row.id) })),
+  });
 }
 
 export async function POST(request: Request) {

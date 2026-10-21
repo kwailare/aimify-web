@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { products } from "@/db/schema";
 import { guardApi } from "@/lib/api-context";
 import { logAudit } from "@/lib/audit";
+import { withWarehouseStock } from "@/lib/product-stock";
 import { deleteOwnedBlob, isBlobConfigured, uploadImage } from "@/lib/blob";
 import { MAX_IMAGE_BYTES } from "@/lib/image-limits";
 import { readImageFile } from "@/lib/images";
@@ -119,7 +120,7 @@ export async function POST(request: Request, { params }: Params) {
     newValue: { imageUrl },
   });
 
-  return NextResponse.json({ product: updated });
+  return NextResponse.json({ product: (await withWarehouseStock(context.organizationId, [updated]))[0] });
 }
 
 export async function DELETE(request: Request, { params }: Params) {
@@ -136,7 +137,7 @@ export async function DELETE(request: Request, { params }: Params) {
   if (!product) return NOT_FOUND();
 
   if (!product.imageUrl) {
-    return NextResponse.json({ product });
+    return NextResponse.json({ product: (await withWarehouseStock(context.organizationId, [product]))[0] });
   }
 
   const [updated] = await db
@@ -159,5 +160,5 @@ export async function DELETE(request: Request, { params }: Params) {
     newValue: { imageUrl: null },
   });
 
-  return NextResponse.json({ product: updated });
+  return NextResponse.json({ product: (await withWarehouseStock(context.organizationId, [updated]))[0] });
 }

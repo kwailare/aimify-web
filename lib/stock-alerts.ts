@@ -1,6 +1,6 @@
 import { and, asc, eq, gt, lte, ne } from "drizzle-orm";
 import { db } from "@/db";
-import { memberships, products, users } from "@/db/schema";
+import { memberships, productStock, products, users, warehouses } from "@/db/schema";
 import { sendEmail } from "@/lib/email";
 
 export type StockAlert = "low_stock" | "out_of_stock";
@@ -58,7 +58,7 @@ export async function getStockAlerts(organizationId: string) {
 export async function notifyStockAlert(
   organizationId: string,
   alert: StockAlert,
-  product: { name: string; sku: string; currentStock: number; minStock: number },
+  product: { productId: string; name: string; sku: string; currentStock: number; minStock: number },
 ) {
   const recipients = await db
     .select({ email: users.email })
@@ -80,9 +80,21 @@ export async function notifyStockAlert(
       ? `${product.name} (${product.sku}) is now out of stock.`
       : `${product.name} (${product.sku}) is down to ${product.currentStock}, at or below its minimum of ${product.minStock}.`;
 
+  const held = await db
+    .select({ warehouse: warehouses.name, quantity: productStock.quantity })
+    .from(productStock)
+    .innerJoin(warehouses, eq(productStock.warehouseId, warehouses.id))
+    .where(and(eq(productStock.productId, product.productId), ne(productStock.quantity, 0)))
+    .orderBy(asc(warehouses.name));
+
+  const breakdown =
+    held.length > 1
+      ? `\n\nBy warehouse:\n${held.map((row) => `- ${row.warehouse}: ${row.quantity}`).join("\n")}`
+      : "";
+
   await sendEmail({
     to: recipients.map((recipient) => recipient.email),
     subject,
-    text: `${text}\n\nOpen the Aimify desktop app to restock or review the movement history.`,
+    text: `${text}${breakdown}\n\nOpen the Aimify desktop app to restock or review the movement history.`,
   });
 }

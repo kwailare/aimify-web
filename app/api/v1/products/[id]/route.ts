@@ -6,7 +6,7 @@ import { denyIfChangeForbidden, guardApi } from "@/lib/api-context";
 import { checkPlanLimit } from "@/lib/plans";
 import { logAudit } from "@/lib/audit";
 import { registerCatalogOption } from "@/lib/catalog";
-import { checkStockBounds, parseProductFields } from "@/lib/product-input";
+import { checkStockBounds, checkSupplier, parseProductFields } from "@/lib/product-input";
 import { isUuid } from "@/lib/validation";
 
 type Params = { params: Promise<{ id: string }> };
@@ -81,6 +81,16 @@ export async function PATCH(request: Request, { params }: Params) {
 
   if (boundsError) {
     return NextResponse.json({ error: boundsError }, { status: 400 });
+  }
+
+  const supplierError = await checkSupplier(
+    context.organizationId,
+    data.supplierId,
+    before.supplierId,
+  );
+
+  if (supplierError) {
+    return NextResponse.json({ error: supplierError, code: "invalid_supplier" }, { status: 400 });
   }
 
   if (data.sku && data.sku !== before.sku) {

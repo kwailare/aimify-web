@@ -6,7 +6,8 @@ import { guardApi } from "@/lib/api-context";
 import { checkPlanLimit } from "@/lib/plans";
 import { logAudit } from "@/lib/audit";
 import { registerCatalogOption } from "@/lib/catalog";
-import { checkStockBounds, parseProductFields } from "@/lib/product-input";
+import { checkStockBounds, checkSupplier, parseProductFields } from "@/lib/product-input";
+import { isUuid } from "@/lib/validation";
 
 export async function GET(request: Request) {
   const context = await guardApi(request, "products.view");
@@ -15,8 +16,17 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url);
   const includeArchived = searchParams.get("includeArchived") === "true";
+  const supplierId = searchParams.get("supplierId");
+
+  if (supplierId !== null && !isUuid(supplierId)) {
+    return NextResponse.json({ error: "supplierId must be a valid id." }, { status: 400 });
+  }
 
   const conditions = [eq(products.organizationId, context.organizationId)];
+
+  if (supplierId) {
+    conditions.push(eq(products.supplierId, supplierId));
+  }
 
   if (!includeArchived) {
     conditions.push(ne(products.status, "archived"));
@@ -55,6 +65,12 @@ export async function POST(request: Request) {
 
   if (boundsError) {
     return NextResponse.json({ error: boundsError }, { status: 400 });
+  }
+
+  const supplierError = await checkSupplier(context.organizationId, data.supplierId);
+
+  if (supplierError) {
+    return NextResponse.json({ error: supplierError, code: "invalid_supplier" }, { status: 400 });
   }
 
   const limit = await checkPlanLimit(context.organizationId, "products");

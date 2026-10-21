@@ -1,3 +1,8 @@
+import { and, eq } from "drizzle-orm";
+import { db } from "@/db";
+import { suppliers } from "@/db/schema";
+import { isUuid } from "@/lib/validation";
+
 export const PRODUCT_STATUSES = ["active", "inactive", "archived"] as const;
 
 export type ProductFields = {
@@ -13,6 +18,7 @@ export type ProductFields = {
   minStock?: number;
   maxStock?: number | null;
   status?: string;
+  supplierId?: string | null;
 };
 
 type ParseResult = { data: ProductFields } | { error: string };
@@ -117,7 +123,39 @@ export function parseProductFields(body: unknown): ParseResult {
     data.status = input.status;
   }
 
+  if ("supplierId" in input) {
+    if (input.supplierId === null) {
+      data.supplierId = null;
+    } else if (isUuid(input.supplierId)) {
+      data.supplierId = input.supplierId;
+    } else {
+      return { error: "supplierId must be a supplier id or null." };
+    }
+  }
+
   return { data };
+}
+
+// A product can only be linked to an active supplier of the same
+// organization. Keeping an existing link to a supplier that was archived
+// since is fine, so the product's history stays intact.
+export async function checkSupplier(
+  organizationId: string,
+  supplierId: string | null | undefined,
+  currentSupplierId: string | null = null,
+) {
+  if (!supplierId || supplierId === currentSupplierId) return null;
+
+  const [supplier] = await db
+    .select({ status: suppliers.status })
+    .from(suppliers)
+    .where(and(eq(suppliers.id, supplierId), eq(suppliers.organizationId, organizationId)))
+    .limit(1);
+
+  if (!supplier) return "That supplier doesn't exist.";
+  if (supplier.status === "archived") return "That supplier is archived. Restore it before linking products to it.";
+
+  return null;
 }
 
 export function checkStockBounds(minStock: number, maxStock: number | null) {

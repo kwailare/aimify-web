@@ -9,6 +9,7 @@ import {
   unique,
   boolean,
   index,
+  type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 
 export const plans = pgTable("plans", {
@@ -133,10 +134,14 @@ export const products = pgTable(
     maxStock: integer(),
     currentStock: integer().notNull().default(0),
     status: text().notNull().default("active"),
+    supplierId: uuid().references((): AnyPgColumn => suppliers.id),
     createdAt: timestamp().defaultNow().notNull(),
     updatedAt: timestamp().defaultNow().notNull(),
   },
-  (table) => [unique().on(table.organizationId, table.sku)],
+  (table) => [
+    unique().on(table.organizationId, table.sku),
+    index("products_supplier_idx").on(table.organizationId, table.supplierId),
+  ],
 );
 
 export const stockMovements = pgTable("stock_movements", {

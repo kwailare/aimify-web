@@ -46,7 +46,7 @@ const MODULES = [
     title: "Product Management",
     phase: "MVP",
     items: [
-      [P, "Full product record (SKU, barcode, name, description, category, brand, unit, prices, min/max stock, current stock, image, supplier, status)", "Everything except the supplier link. The suppliers table now exists, so this can be added."],
+      [D, "Full product record (SKU, barcode, name, description, category, brand, unit, prices, min/max stock, current stock, image, supplier, status)", "Every field, including the usual supplier (picked in the form or matched by name in the Excel import)."],
       [D, "Configurable units of measurement", "Defaults seeded; custom units per organization."],
       [D, "Product categories", "Configurable per organization. Desktop also has bulk import from Excel."],
     ],
@@ -118,7 +118,7 @@ const MODULES = [
     title: "Supplier Management",
     phase: "MVP",
     items: [
-      [P, "Supplier record: name, phone, email, address, contact person, products supplied, outstanding balance", "Everything except products supplied. Synced to the backend."],
+      [D, "Supplier record: name, phone, email, address, contact person, products supplied, outstanding balance", "All fields, with the products that list the supplier as their usual one. Synced to the backend."],
       [P, "Supplier history: purchases, payments, returns, balances", "Payments and balance via the credit ledger. Purchases aren't linked (they're local only)."],
     ],
   },
@@ -240,7 +240,7 @@ const DIFFERENTIATORS = [
 const NEXT_STEPS = [
   ["Sales module", "The biggest MVP gap: sales records and invoices that reduce stock, sync to the backend, and feed the dashboard and reports."],
   ["Move purchases and expenses to the backend", "Today they live on one computer. Add purchase statuses and make receiving increase stock."],
-  ["Small gaps in built modules", "Product-supplier link, customer type, enforcing credit limits, and an inventory valuation report."],
+  ["Small gaps in built modules", "Customer type, enforcing credit limits, and an inventory valuation report."],
   ["Plan upgrade/downgrade", "Decide on proration."],
   ["Go live with Paystack", "Live keys and business verification."],
 ];

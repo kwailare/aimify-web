@@ -6,24 +6,19 @@ import { invitations, memberships, users } from "@/db/schema";
 import { logAudit } from "@/lib/audit";
 import {
   MAX_INVITES_PER_HOUR,
-  MAX_PENDING_INVITES,
-  countPendingInvitations,
   countRecentInvitations,
   createInvitation,
   sendInvitationEmail,
-  userHasOrganization,
 } from "@/lib/invitations";
 import { getOrgContext } from "@/lib/org";
 import { revokeAllSessions } from "@/lib/sessions";
-import { checkPlanLimit } from "@/lib/plans";
 import {
   assignableRoles,
   canChangeMember,
   canManageTeam,
   isRole,
 } from "@/lib/roles";
-
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+import { inviteMember } from "@/lib/team-invites";
 
 async function getManager() {
   const context = await getOrgContext();
@@ -48,74 +43,18 @@ export async function inviteMemberAction(rawEmail: string, role: string) {
     return { error: "You don't have permission to manage the team." };
   }
 
-  const email = rawEmail.trim().toLowerCase();
-
-  if (!EMAIL_PATTERN.test(email) || email.length > 254) {
-    return { error: "Enter a valid email address." };
-  }
-
-  if (!isRole(role) || !assignableRoles(manager.role).includes(role)) {
-    return { error: "You can't invite someone with that role." };
-  }
-
-  const organizationId = manager.organization.id;
-
-  if ((await countPendingInvitations(organizationId)) >= MAX_PENDING_INVITES) {
-    return {
-      error: `You have ${MAX_PENDING_INVITES} pending invitations. Revoke some before sending more.`,
-    };
-  }
-
-  if ((await countRecentInvitations(organizationId)) >= MAX_INVITES_PER_HOUR) {
-    return { error: "Too many invitations sent in the last hour. Try again later." };
-  }
-
-  const seats = await checkPlanLimit(organizationId, "users");
-
-  if (!seats.allowed) {
-    return {
-      error: `${seats.message} Remove a member or revoke an invitation, or ask the Aimify team about a larger plan.`,
-    };
-  }
-
-  const [existing] = await db
-    .select({ id: users.id })
-    .from(users)
-    .where(eq(users.email, email))
-    .limit(1);
-
-  if (existing && (await userHasOrganization(existing.id))) {
-    return {
-      error:
-        "That person already belongs to an organization on Aimify, so they can't be invited.",
-    };
-  }
-
-  const { id, token } = await createInvitation({
-    organizationId,
-    email,
-    role,
-    invitedBy: manager.user.id,
-  });
-
-  await logAudit({
-    organizationId,
-    userId: manager.user.id,
-    module: "team",
-    action: "team.invited",
-    recordId: id,
-    newValue: { email, role },
-  });
-
-  const sent = await sendInvitationEmail({
-    to: email,
-    token,
-    organizationName: manager.organization.name,
-    inviterName: manager.user.name,
+  const result = await inviteMember({
+    organization: manager.organization,
+    inviter: { id: manager.user.id, name: manager.user.name, role: manager.role },
+    email: rawEmail,
     role,
   });
 
-  if (!sent) {
+  if (!result.success) {
+    return { error: result.error };
+  }
+
+  if (!result.emailSent) {
     return {
       error:
         "The invitation was saved but the email couldn't be sent. Use Resend to try again.",

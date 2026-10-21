@@ -10,6 +10,8 @@ export const PERMISSIONS = [
   "suppliers.read",
   "suppliers.write",
   "credit.record",
+  "team.manage",
+  "setup.complete",
 ] as const;
 
 export type Permission = (typeof PERMISSIONS)[number];
@@ -21,6 +23,7 @@ const STOCK_STAFF = [...MANAGERS, "Inventory Staff"];
 // suppliers to whoever buys, and recording payments to finance and above.
 const SELLERS = ["Owner", "Administrator", "Sales Staff"];
 const FINANCE = ["Owner", "Administrator", "Accountant / Finance"];
+const ADMINS = ["Owner", "Administrator"];
 
 const GRANTS: Record<Permission, readonly string[]> = {
   "products.write": STOCK_STAFF,
@@ -34,6 +37,8 @@ const GRANTS: Record<Permission, readonly string[]> = {
   "suppliers.read": [...MANAGERS, "Accountant / Finance"],
   "suppliers.write": MANAGERS,
   "credit.record": FINANCE,
+  "team.manage": ADMINS,
+  "setup.complete": ADMINS,
 };
 
 export function can(role: string | null | undefined, permission: Permission) {

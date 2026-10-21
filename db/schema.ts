@@ -46,6 +46,7 @@ export const organizations = pgTable("organizations", {
   cancelAtPeriodEnd: boolean().notNull().default(false),
   renewalAttempts: integer().notNull().default(0),
   lastRenewalAttemptAt: timestamp(),
+  setupCompletedAt: timestamp(),
   createdAt: timestamp().defaultNow().notNull(),
 });
 

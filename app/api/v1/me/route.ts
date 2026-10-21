@@ -50,6 +50,7 @@ export async function GET(request: Request) {
           dateFormat: context.membership.organization.dateFormat,
           subscriptionStatus: context.membership.organization.subscriptionStatus,
           trialEndsAt: context.membership.organization.trialEndsAt,
+          setupCompletedAt: context.membership.organization.setupCompletedAt,
         }
       : null,
     role: context.membership?.role ?? null,

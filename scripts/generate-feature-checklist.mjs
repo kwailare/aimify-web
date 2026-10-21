@@ -18,7 +18,7 @@ const MODULES = [
     items: [
       [D, "Sign up, login, logout, password reset", "Web and desktop. Login is rate-limited; reset link is single-use and lasts 1 hour."],
       [D, "Email verification", "Link valid 24 hours, can be resent; admins can verify by hand."],
-      [N, "Phone verification where required", ""],
+      [N, "Phone verification where required", "Deferred on 21 Oct 2026. When built: owners only, at onboarding; SMS provider still to choose."],
       [D, "Session management and profile management", "Signed-in devices list, sign out one or all; name and phone editable and audited."],
       [D, "Two-factor authentication", "Authenticator app with QR setup and 10 backup codes, on web and desktop. Delivered early (planned as a later pass)."],
     ],
@@ -30,7 +30,7 @@ const MODULES = [
       [D, "Company profile: name, registration number, address, phone, email, logo", "Logo stored on Vercel Blob."],
       [D, "Industry, currency, tax configuration, date format, time zone", "All editable on the Organization page."],
       [D, "Every transaction tied to its organization ID (tenant isolation)", "Enforced in every query (application level)."],
-      [P, "Guided setup wizard", "Website covers profile, organization, warehouse, trial and download. Products, users and opening inventory are a checklist in the desktop app, not a guided flow."],
+      [D, "Guided setup wizard", "Website: profile, organization, first warehouse, trial, download. Desktop: a guided flow through company & warehouse, products, opening stock, team invitations and subscription, opening automatically for Owners and Administrators until finished."],
     ],
   },
   {

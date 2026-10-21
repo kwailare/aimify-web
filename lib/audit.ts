@@ -23,6 +23,7 @@ const actionLabels: Record<string, string> = {
   "organization.updated": "Organization profile updated",
   "organization.logo_updated": "Company logo updated",
   "organization.logo_removed": "Company logo removed",
+  "organization.setup_completed": "Guided setup completed",
   "product.image_updated": "Product image updated",
   "product.image_removed": "Product image removed",
   "subscription.expired": "Trial expired",

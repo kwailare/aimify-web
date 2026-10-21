@@ -59,7 +59,7 @@ const MODULES = [
       [D, "Stock in, stock out, stock adjustment, stock count", "Atomic updates; roles limit which types each person can record."],
       [D, "Full stock movement history (never a silent overwrite)", "Ledger records before/after stock, user and reason."],
       [D, "Low-stock and out-of-stock alerts", "Returned by the API, listed in the desktop app and emailed."],
-      [P, "Inventory valuation", "Stock value at cost and retail on the web dashboard and desktop reports, and per warehouse on the Warehouses screen. No valuation report yet."],
+      [D, "Inventory valuation", "Valuation report in the desktop app (Reports, Valuation): value at cost and selling price, potential margin, by product, category or warehouse, filterable, with unreliable rows flagged. Priced at current purchase price until purchases are recorded."],
     ],
   },
   {
@@ -240,7 +240,7 @@ const DIFFERENTIATORS = [
 const NEXT_STEPS = [
   ["Sales module", "The biggest MVP gap: sales records and invoices that reduce stock, sync to the backend, and feed the dashboard and reports."],
   ["Move purchases and expenses to the backend", "Today they live on one computer. Add purchase statuses and make receiving increase stock."],
-  ["Small gaps in built modules", "Customer type, enforcing credit limits, and an inventory valuation report."],
+  ["Small gaps in built modules", "Customer type and enforcing credit limits."],
   ["Plan upgrade/downgrade", "Decide on proration."],
   ["Go live with Paystack", "Live keys and business verification."],
 ];

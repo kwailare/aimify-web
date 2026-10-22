@@ -48,6 +48,7 @@ export const organizations = pgTable("organizations", {
   renewalAttempts: integer().notNull().default(0),
   lastRenewalAttemptAt: timestamp(),
   setupCompletedAt: timestamp(),
+  purchaseSeq: integer().notNull().default(0),
   createdAt: timestamp().defaultNow().notNull(),
 });
 
@@ -161,6 +162,7 @@ export const stockMovements = pgTable("stock_movements", {
   reason: text(),
   previousStock: integer().notNull(),
   newStock: integer().notNull(),
+  purchaseId: uuid().references((): AnyPgColumn => purchases.id),
   createdAt: timestamp().defaultNow().notNull(),
 });
 
@@ -452,6 +454,7 @@ export const creditEntries = pgTable(
     note: text(),
     userId: uuid().references(() => users.id),
     clientRef: text(),
+    purchaseId: uuid().references((): AnyPgColumn => purchases.id),
     createdAt: timestamp().defaultNow().notNull(),
   },
   (table) => [
@@ -504,4 +507,111 @@ export const rolePermissions = pgTable(
     updatedAt: timestamp().defaultNow().notNull(),
   },
   (table) => [unique().on(table.organizationId, table.role)],
+);
+
+// Purchases from suppliers. Totals are stored when the purchase is saved;
+// lines can only change while nothing has been received. Receiving,
+// payments and cancelling run as database functions (migration 0022) so
+// each is one all-or-nothing step.
+export const purchases = pgTable(
+  "purchases",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    organizationId: uuid()
+      .notNull()
+      .references(() => organizations.id),
+    number: integer().notNull(),
+    reference: text().notNull(),
+    supplierId: uuid()
+      .notNull()
+      .references(() => suppliers.id),
+    warehouseId: uuid()
+      .notNull()
+      .references(() => warehouses.id),
+    status: text().notNull().default("draft"),
+    orderDate: timestamp().notNull(),
+    expectedDate: timestamp(),
+    notes: text(),
+    subtotal: numeric({ mode: "number" }).notNull().default(0),
+    discount: numeric({ mode: "number" }).notNull().default(0),
+    tax: numeric({ mode: "number" }).notNull().default(0),
+    total: numeric({ mode: "number" }).notNull().default(0),
+    amountPaid: numeric({ mode: "number" }).notNull().default(0),
+    postedAt: timestamp(),
+    receivedAt: timestamp(),
+    cancelledAt: timestamp(),
+    createdBy: uuid().references(() => users.id),
+    clientRef: text(),
+    createdAt: timestamp().defaultNow().notNull(),
+    updatedAt: timestamp().defaultNow().notNull(),
+  },
+  (table) => [
+    unique().on(table.organizationId, table.number),
+    unique().on(table.organizationId, table.clientRef),
+    index("purchases_organization_idx").on(table.organizationId, table.createdAt),
+    index("purchases_supplier_idx").on(table.organizationId, table.supplierId),
+  ],
+);
+
+export const purchaseLines = pgTable(
+  "purchase_lines",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    organizationId: uuid()
+      .notNull()
+      .references(() => organizations.id),
+    purchaseId: uuid()
+      .notNull()
+      .references(() => purchases.id),
+    productId: uuid()
+      .notNull()
+      .references(() => products.id),
+    position: integer().notNull().default(0),
+    quantity: integer().notNull(),
+    unitCost: numeric({ mode: "number" }).notNull(),
+    receivedQuantity: integer().notNull().default(0),
+  },
+  (table) => [index("purchase_lines_purchase_idx").on(table.purchaseId)],
+);
+
+export const purchaseReceipts = pgTable(
+  "purchase_receipts",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    organizationId: uuid()
+      .notNull()
+      .references(() => organizations.id),
+    purchaseId: uuid()
+      .notNull()
+      .references(() => purchases.id),
+    userId: uuid().references(() => users.id),
+    clientRef: text(),
+    createdAt: timestamp().defaultNow().notNull(),
+  },
+  (table) => [
+    unique().on(table.organizationId, table.clientRef),
+    index("purchase_receipts_purchase_idx").on(table.purchaseId),
+  ],
+);
+
+export const purchasePayments = pgTable(
+  "purchase_payments",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    organizationId: uuid()
+      .notNull()
+      .references(() => organizations.id),
+    purchaseId: uuid()
+      .notNull()
+      .references(() => purchases.id),
+    amount: numeric({ mode: "number" }).notNull(),
+    note: text(),
+    userId: uuid().references(() => users.id),
+    clientRef: text(),
+    createdAt: timestamp().defaultNow().notNull(),
+  },
+  (table) => [
+    unique().on(table.organizationId, table.clientRef),
+    index("purchase_payments_purchase_idx").on(table.purchaseId),
+  ],
 );

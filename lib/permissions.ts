@@ -65,6 +65,16 @@ export const PERMISSION_MODULES = [
     label: "Credit ledger",
     actions: [{ key: "credit.record", label: "Record entries" }],
   },
+  {
+    module: "purchases",
+    label: "Purchases",
+    actions: [
+      { key: "purchases.view", label: "View" },
+      { key: "purchases.create", label: "Add & edit" },
+      { key: "purchases.receive", label: "Receive" },
+      { key: "purchases.cancel", label: "Cancel" },
+    ],
+  },
 ] as const;
 
 type ModuleAction = (typeof PERMISSION_MODULES)[number]["actions"][number];
@@ -118,6 +128,10 @@ const DEFAULT_GRANTS: Record<EditablePermission, readonly string[]> = {
   "suppliers.edit": MANAGERS,
   "suppliers.archive": MANAGERS,
   "credit.record": FINANCE,
+  "purchases.view": [...MANAGERS, "Accountant / Finance"],
+  "purchases.create": MANAGERS,
+  "purchases.receive": MANAGERS,
+  "purchases.cancel": MANAGERS,
 };
 
 const FIXED_GRANTS: Record<FixedPermission, readonly string[]> = {
@@ -134,14 +148,17 @@ export function defaultPermissions(role: string): EditablePermission[] {
 }
 
 // What each action can't work without: every action needs its own module's
-// view, recording stock means picking a product and a warehouse, and the
-// product form picks a category and unit.
+// view, recording stock means picking a product and a warehouse, the
+// product form picks a category and unit, and a purchase picks products
+// and a warehouse.
 const EXTRA_REQUIREMENTS: Partial<Record<EditablePermission, EditablePermission[]>> = {
   "products.create": ["catalog.view"],
   "products.edit": ["catalog.view"],
   "stock.in": ["products.view", "warehouses.view"],
   "stock.out": ["products.view", "warehouses.view"],
   "stock.adjust": ["products.view", "warehouses.view"],
+  "purchases.create": ["products.view", "warehouses.view"],
+  "purchases.receive": ["products.view", "warehouses.view"],
 };
 
 export function requiredBy(key: EditablePermission): EditablePermission[] {

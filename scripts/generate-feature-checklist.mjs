@@ -84,9 +84,9 @@ const MODULES = [
     title: "Purchase Management",
     phase: "MVP",
     items: [
-      [P, "Purchase record (supplier, warehouse, products, quantity, unit cost, discount, tax, total, payment status, paid, balance, date, user)", "Desktop records supplier, items, unit cost, payment status, amount paid and balance, saved on that computer only. No warehouse, discount, tax or user, and nothing on the backend."],
-      [N, "Purchase statuses: draft, pending, received, partially received, cancelled", ""],
-      [N, "Receiving a purchase automatically increases inventory", "Purchases don't touch stock yet."],
+      [D, "Purchase record (supplier, warehouse, products, quantity, unit cost, discount, tax, total, payment status, paid, balance, date, user)", "On the server with numbered references (PO-0001). Payments post to the supplier's account; a new purchase can also be recorded offline."],
+      [D, "Purchase statuses: draft, pending, received, partially received, cancelled", "Received line by line; cancelling a paid order records what the supplier owes back."],
+      [D, "Receiving a purchase automatically increases inventory", "Into the purchase's warehouse, in one step with the purchase price update and the supplier's balance."],
     ],
   },
   {
@@ -119,7 +119,7 @@ const MODULES = [
     phase: "MVP",
     items: [
       [D, "Supplier record: name, phone, email, address, contact person, products supplied, outstanding balance", "All fields, with the products that list the supplier as their usual one. Synced to the backend."],
-      [P, "Supplier history: purchases, payments, returns, balances", "Payments and balance via the credit ledger. Purchases aren't linked (they're local only)."],
+      [P, "Supplier history: purchases, payments, returns, balances", "Purchases, payments and balance are shown on the supplier. Returns come with Returns Management (Phase 2)."],
     ],
   },
   {
@@ -239,7 +239,7 @@ const DIFFERENTIATORS = [
 
 const NEXT_STEPS = [
   ["Sales module", "The biggest MVP gap: sales records and invoices that reduce stock, sync to the backend, and feed the dashboard and reports."],
-  ["Move purchases and expenses to the backend", "Today they live on one computer. Add purchase statuses and make receiving increase stock."],
+  ["Move expenses to the backend", "Today they live on one computer."],
   ["Small gaps in built modules", "Customer type and enforcing credit limits."],
   ["Plan upgrade/downgrade", "Decide on proration."],
   ["Go live with Paystack", "Live keys and business verification."],
@@ -360,7 +360,7 @@ const html = `<!doctype html>
   <div class="subtitle">Feature Checklist</div>
   <div class="meta">Every item in the Full Proposed Feature Set (August 2026), ticked against what is built. Status as of ${AS_OF}, checked against the aimify-web and aimify_desktop repositories.</div>
 
-  <div class="callout"><b>Where things stand.</b> ${all[D]} of ${allTotal} proposed items are done and ${all[P]} are partly done. For the MVP, ${mvpT[D]} of ${mvpTotal} items are done and ${mvpT[P]} partly done. The account, subscription, payments, admin, inventory, customer, supplier and credit foundations are in place. The main MVP gap is <b>sales</b>, which doesn't exist yet. Sales also holds up the sales-based dashboard cards and the sales and financial reports. Purchases and expenses work in the desktop app but are saved only on that computer. Offline sync and two-factor sign-in were delivered ahead of plan.</div>
+  <div class="callout"><b>Where things stand.</b> ${all[D]} of ${allTotal} proposed items are done and ${all[P]} are partly done. For the MVP, ${mvpT[D]} of ${mvpTotal} items are done and ${mvpT[P]} partly done. The account, subscription, payments, admin, inventory, customer, supplier and credit foundations are in place. The main MVP gap is <b>sales</b>, which doesn't exist yet. Sales also holds up the sales-based dashboard cards and the sales and financial reports. Purchases are on the server and receiving them adds stock; expenses are still saved only on one computer. Offline sync and two-factor sign-in were delivered ahead of plan.</div>
 
   <div class="legend"><span class="lg">${pill(D)} built and tested</span><span class="lg">${pill(P)} incomplete, or saved on one computer only</span><span class="lg">${pill(N)} nothing built yet</span></div>
 

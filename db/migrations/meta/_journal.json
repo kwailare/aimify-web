@@ -155,6 +155,20 @@
       "when": 1792575580896,
       "tag": "0021_bitter_kang",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1792673306465,
+      "tag": "0022_real_cyclops",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1792673330227,
+      "tag": "0023_purchase_functions",
+      "breakpoints": true
     }
   ]
 }

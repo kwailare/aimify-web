@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, gte, lt, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { creditEntries } from "@/db/schema";
 import { denyIfForbidden, guardApi } from "@/lib/api-context";
@@ -15,7 +15,7 @@ import {
 } from "@/lib/credit";
 import { isUuid } from "@/lib/validation";
 
-const MAX_LIMIT = 200;
+const MAX_LIMIT = 1000;
 
 // The credit ledger. A customer's balance is what they owe us; a supplier's
 // is what we owe them; positive always means "still owed".
@@ -59,6 +59,21 @@ export async function GET(request: Request) {
     if (denied) return denied;
   }
 
+  // A period, for statements: entries from `from` (inclusive) up to `to`
+  // (exclusive). With one party, `openingBalance` is what was owed before
+  // `from`.
+  const parseDate = (value: string | null) => {
+    if (value === null) return null;
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? undefined : parsed;
+  };
+  const from = parseDate(searchParams.get("from"));
+  const to = parseDate(searchParams.get("to"));
+
+  if (from === undefined || to === undefined) {
+    return NextResponse.json({ error: "from and to must be dates." }, { status: 400 });
+  }
+
   const requestedLimit = Number(searchParams.get("limit"));
   const limit =
     Number.isInteger(requestedLimit) && requestedLimit > 0
@@ -74,6 +89,8 @@ export async function GET(request: Request) {
     ];
 
     if (partyId) conditions.push(eq(creditEntries.partyId, partyId));
+    if (from) conditions.push(gte(creditEntries.createdAt, from));
+    if (to) conditions.push(lt(creditEntries.createdAt, to));
 
     rows.push(
       ...(await db
@@ -87,7 +104,27 @@ export async function GET(request: Request) {
 
   rows.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
-  return NextResponse.json({ entries: rows.slice(0, limit) });
+  let openingBalance: number | undefined;
+
+  if (partyId && partyType && from) {
+    const [row] = await db
+      .select({ total: sql<number>`coalesce(sum(${creditEntries.amount}), 0)::float8` })
+      .from(creditEntries)
+      .where(
+        and(
+          eq(creditEntries.organizationId, context.organizationId),
+          eq(creditEntries.partyType, partyType),
+          eq(creditEntries.partyId, partyId),
+          lt(creditEntries.createdAt, from),
+        ),
+      );
+    openingBalance = Math.round(Number(row?.total ?? 0) * 100) / 100;
+  }
+
+  return NextResponse.json({
+    entries: rows.slice(0, limit),
+    ...(openingBalance === undefined ? {} : { openingBalance }),
+  });
 }
 
 export async function POST(request: Request) {

@@ -84,7 +84,7 @@ const MODULES = [
     title: "Purchase Management",
     phase: "MVP",
     items: [
-      [D, "Purchase record (supplier, warehouse, products, quantity, unit cost, discount, tax, total, payment status, paid, balance, date, user)", "On the server with numbered references (PO-0001). Payments post to the supplier's account; a new purchase can also be recorded offline."],
+      [D, "Purchase record (supplier, warehouse, products, quantity, unit cost, discount, tax, total, payment status, paid, balance, date, user)", "On the server with numbered references (PO-0001). Payments post to the supplier's account; a new purchase can also be recorded offline. Purchase orders, goods received notes, payment receipts and supplier statements print or save as PDF."],
       [D, "Purchase statuses: draft, pending, received, partially received, cancelled", "Received line by line; cancelling a paid order records what the supplier owes back."],
       [D, "Receiving a purchase automatically increases inventory", "Into the purchase's warehouse, in one step with the purchase price update and the supplier's balance."],
     ],

@@ -49,6 +49,7 @@ export const organizations = pgTable("organizations", {
   lastRenewalAttemptAt: timestamp(),
   setupCompletedAt: timestamp(),
   purchaseSeq: integer().notNull().default(0),
+  saleSeq: integer().notNull().default(0),
   createdAt: timestamp().defaultNow().notNull(),
 });
 
@@ -163,6 +164,7 @@ export const stockMovements = pgTable("stock_movements", {
   previousStock: integer().notNull(),
   newStock: integer().notNull(),
   purchaseId: uuid().references((): AnyPgColumn => purchases.id),
+  saleId: uuid().references((): AnyPgColumn => sales.id),
   createdAt: timestamp().defaultNow().notNull(),
 });
 
@@ -455,6 +457,7 @@ export const creditEntries = pgTable(
     userId: uuid().references(() => users.id),
     clientRef: text(),
     purchaseId: uuid().references((): AnyPgColumn => purchases.id),
+    saleId: uuid().references((): AnyPgColumn => sales.id),
     createdAt: timestamp().defaultNow().notNull(),
   },
   (table) => [
@@ -613,5 +616,95 @@ export const purchasePayments = pgTable(
   (table) => [
     unique().on(table.organizationId, table.clientRef),
     index("purchase_payments_purchase_idx").on(table.purchaseId),
+  ],
+);
+
+// Sales to customers. A sale is completed when it is recorded (stock leaves
+// the warehouse at once) and can only be voided afterwards. Creating,
+// paying and voiding run as database functions (migration 0025) so each is
+// one all-or-nothing step. customerId is null for a walk-in sale, which
+// must be paid in full.
+export const sales = pgTable(
+  "sales",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    organizationId: uuid()
+      .notNull()
+      .references(() => organizations.id),
+    number: integer().notNull(),
+    reference: text().notNull(),
+    customerId: uuid().references(() => customers.id),
+    warehouseId: uuid()
+      .notNull()
+      .references(() => warehouses.id),
+    status: text().notNull().default("completed"),
+    saleDate: timestamp().notNull(),
+    notes: text(),
+    subtotal: numeric({ mode: "number" }).notNull().default(0),
+    discount: numeric({ mode: "number" }).notNull().default(0),
+    tax: numeric({ mode: "number" }).notNull().default(0),
+    total: numeric({ mode: "number" }).notNull().default(0),
+    amountPaid: numeric({ mode: "number" }).notNull().default(0),
+    overLimitApprovedBy: uuid().references(() => users.id),
+    voidedAt: timestamp(),
+    voidedBy: uuid().references(() => users.id),
+    voidReason: text(),
+    createdBy: uuid().references(() => users.id),
+    clientRef: text(),
+    createdAt: timestamp().defaultNow().notNull(),
+    updatedAt: timestamp().defaultNow().notNull(),
+  },
+  (table) => [
+    unique().on(table.organizationId, table.number),
+    unique().on(table.organizationId, table.clientRef),
+    index("sales_organization_idx").on(table.organizationId, table.saleDate),
+    index("sales_customer_idx").on(table.organizationId, table.customerId),
+  ],
+);
+
+// unitCost is the product's purchase price when sold, kept for profit
+// reports; listPrice is its selling price then, to show discounts given.
+export const saleLines = pgTable(
+  "sale_lines",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    organizationId: uuid()
+      .notNull()
+      .references(() => organizations.id),
+    saleId: uuid()
+      .notNull()
+      .references(() => sales.id),
+    productId: uuid()
+      .notNull()
+      .references(() => products.id),
+    position: integer().notNull().default(0),
+    quantity: integer().notNull(),
+    unitPrice: numeric({ mode: "number" }).notNull(),
+    listPrice: numeric({ mode: "number" }).notNull(),
+    unitCost: numeric({ mode: "number" }).notNull().default(0),
+  },
+  (table) => [index("sale_lines_sale_idx").on(table.saleId)],
+);
+
+export const salePayments = pgTable(
+  "sale_payments",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    organizationId: uuid()
+      .notNull()
+      .references(() => organizations.id),
+    saleId: uuid()
+      .notNull()
+      .references(() => sales.id),
+    amount: numeric({ mode: "number" }).notNull(),
+    method: text().notNull().default("cash"),
+    note: text(),
+    userId: uuid().references(() => users.id),
+    clientRef: text(),
+    createdAt: timestamp().defaultNow().notNull(),
+  },
+  (table) => [
+    unique().on(table.organizationId, table.clientRef),
+    index("sale_payments_sale_idx").on(table.saleId),
   ],
 );

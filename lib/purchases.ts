@@ -13,6 +13,7 @@ import {
   warehouses,
 } from "@/db/schema";
 import { roundMoney } from "@/lib/credit";
+import { callDbFunction, type FunctionError, type FunctionOutcome } from "@/lib/db-functions";
 import { isUuid } from "@/lib/validation";
 
 export const PURCHASE_STATUSES = [
@@ -489,7 +490,7 @@ export async function findPurchaseByClientRef(organizationId: string, clientRef:
   return row?.id ?? null;
 }
 
-const FUNCTION_ERRORS: Record<string, { status: number; error: string }> = {
+const PURCHASE_ERRORS: Record<string, FunctionError> = {
   purchase_not_found: { status: 404, error: "Purchase not found." },
   purchase_not_receivable: { status: 409, error: "This purchase can't be received in its current status." },
   purchase_not_cancellable: { status: 409, error: "Only a draft or pending purchase with nothing received can be cancelled." },
@@ -498,37 +499,21 @@ const FUNCTION_ERRORS: Record<string, { status: number; error: string }> = {
   nothing_to_receive: { status: 400, error: "Say how many of at least one line arrived." },
   invalid_quantity: { status: 400, error: "Each received quantity must be a whole number above 0." },
   line_not_found: { status: 400, error: "One of the lines isn't on this purchase." },
-  over_receipt: { status: 409, error: "That's more than is still outstanding on the line." },
+  over_receipt: {
+    status: 409,
+    error: "That's more than is still outstanding on the line.",
+    describe: (d) => (typeof d.remaining === "number" ? `Only ${d.remaining} still outstanding on that line.` : null),
+  },
   invalid_amount: { status: 400, error: "amount must be a number above 0." },
-  overpayment: { status: 409, error: "That's more than is still owed on this purchase." },
+  overpayment: {
+    status: 409,
+    error: "That's more than is still owed on this purchase.",
+    describe: (d) =>
+      typeof d.remaining === "number" ? `Only ${roundMoney(d.remaining)} is still owed on this purchase.` : null,
+  },
 };
 
-// Calls one of the purchase database functions, turning the codes they raise
-// into an API error ({ status, body }) instead of a 500.
-export async function callPurchaseFunction(
-  query: ReturnType<typeof sql>,
-): Promise<{ ok: true; result: Record<string, unknown> } | { ok: false; status: number; body: Record<string, unknown> }> {
-  try {
-    const { rows } = await db.execute<{ result: Record<string, unknown> }>(query);
-    return { ok: true, result: rows[0].result };
-  } catch (error) {
-    const cause = (error as { cause?: { message?: string; detail?: string } }).cause ?? (error as { message?: string; detail?: string });
-    const code = cause?.message ?? "";
-    const known = FUNCTION_ERRORS[code];
-    if (!known) throw error;
-    let detail: Record<string, unknown> = {};
-    try {
-      detail = cause.detail ? JSON.parse(cause.detail) : {};
-    } catch {
-      detail = {};
-    }
-    let message = known.error;
-    if (code === "over_receipt" && typeof detail.remaining === "number") {
-      message = `Only ${detail.remaining} still outstanding on that line.`;
-    }
-    if (code === "overpayment" && typeof detail.remaining === "number") {
-      message = `Only ${roundMoney(detail.remaining)} is still owed on this purchase.`;
-    }
-    return { ok: false, status: known.status, body: { error: message, code, ...detail } };
-  }
+// Calls one of the purchase database functions (see callDbFunction).
+export function callPurchaseFunction(query: ReturnType<typeof sql>): Promise<FunctionOutcome> {
+  return callDbFunction(query, PURCHASE_ERRORS);
 }

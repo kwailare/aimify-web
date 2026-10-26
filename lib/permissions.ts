@@ -75,6 +75,17 @@ export const PERMISSION_MODULES = [
       { key: "purchases.cancel", label: "Cancel" },
     ],
   },
+  {
+    module: "sales",
+    label: "Sales",
+    actions: [
+      { key: "sales.view", label: "View" },
+      { key: "sales.create", label: "Sell" },
+      { key: "sales.discount", label: "Discounts & prices" },
+      { key: "sales.override", label: "Override credit limit" },
+      { key: "sales.void", label: "Void" },
+    ],
+  },
 ] as const;
 
 type ModuleAction = (typeof PERMISSION_MODULES)[number]["actions"][number];
@@ -132,6 +143,11 @@ const DEFAULT_GRANTS: Record<EditablePermission, readonly string[]> = {
   "purchases.create": MANAGERS,
   "purchases.receive": MANAGERS,
   "purchases.cancel": MANAGERS,
+  "sales.view": [...SELLERS, "Accountant / Finance"],
+  "sales.create": SELLERS,
+  "sales.discount": ADMINS,
+  "sales.override": ADMINS,
+  "sales.void": ADMINS,
 };
 
 const FIXED_GRANTS: Record<FixedPermission, readonly string[]> = {
@@ -159,6 +175,9 @@ const EXTRA_REQUIREMENTS: Partial<Record<EditablePermission, EditablePermission[
   "stock.adjust": ["products.view", "warehouses.view"],
   "purchases.create": ["products.view", "warehouses.view"],
   "purchases.receive": ["products.view", "warehouses.view"],
+  "sales.create": ["products.view", "warehouses.view"],
+  "sales.discount": ["sales.create"],
+  "sales.override": ["sales.create"],
 };
 
 export function requiredBy(key: EditablePermission): EditablePermission[] {

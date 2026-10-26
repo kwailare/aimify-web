@@ -93,8 +93,8 @@ const MODULES = [
     title: "Sales Management",
     phase: "MVP",
     items: [
-      [N, "Sales record (invoice number, customer, warehouse, products, prices, discount, tax, total, paid, balance, payment method, salesperson)", "No sales module in the desktop app or backend. Sales Staff can only record stock-out."],
-      [N, "Completing a sale automatically decreases inventory", ""],
+      [D, "Sales record (invoice number, customer, warehouse, products, prices, discount, tax, total, paid, balance, payment method, salesperson)", "On the server with numbered invoices (INV-0001), walk-in or customer, can be recorded offline. Other prices and discounts need a permission; Owner/Admin can void. Invoices and receipts print or save as PDF."],
+      [D, "Completing a sale automatically decreases inventory", "From the chosen warehouse, in one step with the customer's balance; never more than the warehouse holds, even when two people sell the last units at once. Voiding puts the stock back."],
     ],
   },
   {
@@ -102,7 +102,7 @@ const MODULES = [
     phase: "MVP",
     items: [
       [P, "Customer record: name, phone, email, address, customer type, credit limit, current balance, status", "Everything except customer type. Synced to the backend."],
-      [P, "Full transaction history: purchases, payments, balances, credit sales, returns", "Credit ledger history (charges, payments, adjustments). No sales or returns to show yet."],
+      [P, "Full transaction history: purchases, payments, balances, credit sales, returns", "Sales, payments, adjustments and balance on each customer, with a printable statement. Returns come with Returns Management (Phase 2)."],
     ],
   },
   {
@@ -110,8 +110,8 @@ const MODULES = [
     phase: "MVP",
     items: [
       [D, "Record credit sales and repayments", "Shared ledger; safe against double-posting and simultaneous payments."],
-      [P, "Track outstanding balances and set customer credit limits", "Balances are tracked and a limit can be set, but a charge over the limit isn't blocked or warned."],
-      [P, "Customer debt history, debt reports, receipts", "History per customer is there. No debt report or printable receipt."],
+      [D, "Track outstanding balances and set customer credit limits", "A credit sale over the limit is blocked; an Owner or Administrator can allow it, and that is recorded."],
+      [P, "Customer debt history, debt reports, receipts", "History, statements and payment receipts per customer. No debt report yet (Reports step)."],
     ],
   },
   {
@@ -143,7 +143,7 @@ const MODULES = [
     title: "Dashboard & Analytics",
     phase: "MVP",
     items: [
-      [P, "Key cards (products, inventory value, sales, purchases, customer and supplier debt, expenses, profit, low stock)", "Inventory cards are built on web and desktop. Sales, profit and debt cards wait on the sales module."],
+      [P, "Key cards (products, inventory value, sales, purchases, customer and supplier debt, expenses, profit, low stock)", "Inventory cards are built on web and desktop. Sales, profit and debt cards come with the dashboard step."],
       [P, "Charts (sales, purchases, expenses, top sellers, stock movement, debt, warehouse performance)", "Stock movement, stock value and stock health charts are built. Sales-based charts are not."],
     ],
   },
@@ -152,7 +152,7 @@ const MODULES = [
     phase: "MVP",
     items: [
       [P, "Inventory reports: current stock, valuation, movement, low/out of stock, adjustments", "Shown in the desktop Reports and Inventory screens, without date or user filters."],
-      [N, "Sales reports (by period, product, customer, employee, warehouse)", "Needs the sales module."],
+      [N, "Sales reports (by period, product, customer, employee, warehouse)", "Sales are recorded; the Sales screen filters by period and customer. Reports come with the reports step."],
       [N, "Purchase reports (by supplier, product, warehouse)", ""],
       [N, "Financial reports: revenue, expenses, gross profit, debts, payments", ""],
       [N, "Filtering by date, warehouse, user, customer, supplier, product", "Excel/PDF export is planned for Phase 2."],
@@ -238,9 +238,9 @@ const DIFFERENTIATORS = [
 ];
 
 const NEXT_STEPS = [
-  ["Sales module", "The biggest MVP gap: sales records and invoices that reduce stock, sync to the backend, and feed the dashboard and reports."],
+  ["Customers, credit and suppliers", "Finish the remaining customer, debt and supplier items (customer type, debt reports)."],
   ["Move expenses to the backend", "Today they live on one computer."],
-  ["Small gaps in built modules", "Customer type and enforcing credit limits."],
+  ["Small gaps in built modules", "Customer type."],
   ["Plan upgrade/downgrade", "Decide on proration."],
   ["Go live with Paystack", "Live keys and business verification."],
 ];
@@ -360,7 +360,7 @@ const html = `<!doctype html>
   <div class="subtitle">Feature Checklist</div>
   <div class="meta">Every item in the Full Proposed Feature Set (August 2026), ticked against what is built. Status as of ${AS_OF}, checked against the aimify-web and aimify_desktop repositories.</div>
 
-  <div class="callout"><b>Where things stand.</b> ${all[D]} of ${allTotal} proposed items are done and ${all[P]} are partly done. For the MVP, ${mvpT[D]} of ${mvpTotal} items are done and ${mvpT[P]} partly done. The account, subscription, payments, admin, inventory, customer, supplier and credit foundations are in place. The main MVP gap is <b>sales</b>, which doesn't exist yet. Sales also holds up the sales-based dashboard cards and the sales and financial reports. Purchases are on the server and receiving them adds stock; expenses are still saved only on one computer. Offline sync and two-factor sign-in were delivered ahead of plan.</div>
+  <div class="callout"><b>Where things stand.</b> ${all[D]} of ${allTotal} proposed items are done and ${all[P]} are partly done. For the MVP, ${mvpT[D]} of ${mvpTotal} items are done and ${mvpT[P]} partly done. The account, subscription, payments, admin, inventory, customer, supplier and credit foundations are in place. Sales and purchases are on the server: a sale takes stock out of its warehouse and a received purchase adds it, both posting to the customer's or supplier's account. The main MVP gaps now are <b>expenses</b> (still saved only on one computer), the sales-based <b>dashboard</b> cards and the sales and financial <b>reports</b>. Offline sync and two-factor sign-in were delivered ahead of plan.</div>
 
   <div class="legend"><span class="lg">${pill(D)} built and tested</span><span class="lg">${pill(P)} incomplete, or saved on one computer only</span><span class="lg">${pill(N)} nothing built yet</span></div>
 

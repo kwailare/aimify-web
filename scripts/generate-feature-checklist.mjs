@@ -101,7 +101,7 @@ const MODULES = [
     title: "Customer Management",
     phase: "MVP",
     items: [
-      [P, "Customer record: name, phone, email, address, customer type, credit limit, current balance, status", "Everything except customer type. Synced to the backend."],
+      [D, "Customer record: name, phone, email, address, customer type, credit limit, current balance, status", "Owner-managed customer types with default credit limits; archive and restore; search, filters and summary cards; a page per customer with totals bought, sales and account; Excel import (with opening balances) and export."],
       [P, "Full transaction history: purchases, payments, balances, credit sales, returns", "Sales, payments, adjustments and balance on each customer, with a printable statement. Returns come with Returns Management (Phase 2)."],
     ],
   },
@@ -238,9 +238,8 @@ const DIFFERENTIATORS = [
 ];
 
 const NEXT_STEPS = [
-  ["Customers, credit and suppliers", "Finish the remaining customer, debt and supplier items (customer type, debt reports)."],
+  ["Credit/debt and suppliers", "Debt reports, then the remaining supplier items."],
   ["Move expenses to the backend", "Today they live on one computer."],
-  ["Small gaps in built modules", "Customer type."],
   ["Plan upgrade/downgrade", "Decide on proration."],
   ["Go live with Paystack", "Live keys and business verification."],
 ];

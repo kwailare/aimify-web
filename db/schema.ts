@@ -409,6 +409,24 @@ export const suppliers = pgTable(
   (table) => [index("suppliers_organization_idx").on(table.organizationId)],
 );
 
+// The kinds of customer a business sells to (Retail, Wholesale, ...). Each
+// organization keeps its own list; a type can suggest the credit limit for
+// new customers of that type.
+export const customerTypes = pgTable(
+  "customer_types",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    organizationId: uuid()
+      .notNull()
+      .references(() => organizations.id),
+    name: text().notNull(),
+    defaultCreditLimit: numeric({ mode: "number" }).notNull().default(0),
+    createdAt: timestamp().defaultNow().notNull(),
+    updatedAt: timestamp().defaultNow().notNull(),
+  },
+  (table) => [unique().on(table.organizationId, table.name)],
+);
+
 export const customers = pgTable(
   "customers",
   {
@@ -417,6 +435,7 @@ export const customers = pgTable(
       .notNull()
       .references(() => organizations.id),
     name: text().notNull(),
+    customerTypeId: uuid().references(() => customerTypes.id),
     phone: text(),
     email: text(),
     address: text(),

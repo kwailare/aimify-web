@@ -6,6 +6,7 @@ import { db } from "@/db";
 import { memberships, organizations, users, warehouses } from "@/db/schema";
 import { logAudit } from "@/lib/audit";
 import { seedDefaultUnits } from "@/lib/catalog";
+import { seedDefaultCustomerTypes } from "@/lib/customer-types";
 import { getDefaultPlan } from "@/lib/plans";
 import { isEmailVerified } from "@/lib/email-verification";
 
@@ -78,6 +79,7 @@ export async function completeOrganizationAction(formData: FormData) {
   });
 
   await seedDefaultUnits(org.id);
+  await seedDefaultCustomerTypes(org.id);
 
   if (warehouseName) {
     await db.insert(warehouses).values({

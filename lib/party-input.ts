@@ -1,3 +1,5 @@
+import { isUuid } from "@/lib/validation";
+
 // Validation for the fields of a supplier or customer. Shared by both
 // because they are the same kind of record: a named business or person with
 // contact details (customers also carry a credit limit).
@@ -10,6 +12,7 @@ export type PartyFields = {
   address?: string | null;
   notes?: string | null;
   creditLimit?: number;
+  customerTypeId?: string | null;
   status?: string;
 };
 
@@ -76,6 +79,17 @@ export function parsePartyFields(
       return { error: "creditLimit must be a non-negative number." };
     }
     data.creditLimit = value;
+  }
+
+  if ("customerTypeId" in input) {
+    if (!options.allowCreditLimit) {
+      return { error: "customerTypeId is only used for customers." };
+    }
+    const value = input.customerTypeId;
+    if (value !== null && !(typeof value === "string" && isUuid(value))) {
+      return { error: "customerTypeId must be a customer type id or null." };
+    }
+    data.customerTypeId = value;
   }
 
   if ("status" in input) {

@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
-import { and, asc, eq, ne } from "drizzle-orm";
+import { and, asc, eq, inArray, ne, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { customers, suppliers } from "@/db/schema";
+import { customers, customerTypes, sales, suppliers } from "@/db/schema";
 import { denyIfChangeForbidden, guardApi } from "@/lib/api-context";
 import { logAudit } from "@/lib/audit";
 import { roundMoney, type PartyType } from "@/lib/credit";
+import { findCustomerType } from "@/lib/customer-types";
 import { parsePartyFields } from "@/lib/party-input";
 import type { Permission } from "@/lib/permissions";
 import { isUuid } from "@/lib/validation";
@@ -54,6 +55,58 @@ function withBalance(row: Row) {
   return { ...rest, balanceOwed: roundMoney(balance) };
 }
 
+// Customers also carry their type's name and what they have bought
+// (completed sales only: voided ones don't count).
+async function shapeRows(type: PartyType, organizationId: string, rows: Row[]) {
+  const shaped = rows.map(withBalance);
+  if (type !== "customer" || rows.length === 0) return shaped;
+
+  const ids = rows.map((r) => r.id);
+  const [types, totals] = await Promise.all([
+    db
+      .select({ id: customerTypes.id, name: customerTypes.name })
+      .from(customerTypes)
+      .where(eq(customerTypes.organizationId, organizationId)),
+    db
+      .select({
+        customerId: sales.customerId,
+        total: sql<number>`coalesce(sum(${sales.total}), 0)::float8`,
+        count: sql<number>`count(*)::int`,
+        last: sql<Date | null>`max(${sales.saleDate})`.mapWith(sales.saleDate),
+      })
+      .from(sales)
+      .where(
+        and(
+          eq(sales.organizationId, organizationId),
+          eq(sales.status, "completed"),
+          ids.length === 1 ? eq(sales.customerId, ids[0]) : inArray(sales.customerId, ids),
+        ),
+      )
+      .groupBy(sales.customerId),
+  ]);
+  const typeName = new Map(types.map((t) => [t.id, t.name]));
+  const bought = new Map(totals.map((t) => [t.customerId, t]));
+
+  return shaped.map((row) => {
+    const b = bought.get(row.id as string);
+    const typeId = (row as Record<string, unknown>).customerTypeId as string | null;
+    return {
+      ...row,
+      customerTypeName: typeId ? (typeName.get(typeId) ?? null) : null,
+      totalSales: roundMoney(Number(b?.total ?? 0)),
+      salesCount: b?.count ?? 0,
+      lastSaleAt: b?.last ? new Date(b.last).toISOString() : null,
+    };
+  });
+}
+
+async function shapeOne(type: PartyType, organizationId: string, row: unknown) {
+  return (await shapeRows(type, organizationId, [row as Row]))[0];
+}
+
+const badType = () =>
+  NextResponse.json({ error: "That customer type doesn't exist." }, { status: 400 });
+
 export async function listParties(request: Request, type: PartyType) {
   const config = CONFIG[type];
   const context = await guardApi(request, config.view);
@@ -76,7 +129,7 @@ export async function listParties(request: Request, type: PartyType) {
     .orderBy(asc(config.table.name));
 
   return NextResponse.json({
-    [config.plural]: (rows as Row[]).map((row) => withBalance(row)),
+    [config.plural]: await shapeRows(type, context.organizationId, rows as Row[]),
   });
 }
 
@@ -106,6 +159,12 @@ export async function createParty(request: Request, type: PartyType) {
   const values = { ...data, name: data.name };
   delete values.status;
 
+  if (data.customerTypeId) {
+    const customerType = await findCustomerType(context.organizationId, data.customerTypeId);
+    if (!customerType) return badType();
+    if (data.creditLimit === undefined) values.creditLimit = customerType.defaultCreditLimit;
+  }
+
   const [created] = await db
     .insert(config.table)
     .values({ ...values, organizationId: context.organizationId })
@@ -121,7 +180,7 @@ export async function createParty(request: Request, type: PartyType) {
   });
 
   return NextResponse.json(
-    { [type]: withBalance(created as Row) },
+    { [type]: await shapeOne(type, context.organizationId, created) },
     { status: 201 },
   );
 }
@@ -148,7 +207,7 @@ export async function getParty(request: Request, type: PartyType, id: string) {
   if (!row) return notFound(type);
 
   return NextResponse.json({
-    [type]: withBalance(row as Row),
+    [type]: await shapeOne(type, context.organizationId, row),
   });
 }
 
@@ -184,6 +243,10 @@ export async function updateParty(request: Request, type: PartyType, id: string)
       { error: "Send at least one field to update." },
       { status: 400 },
     );
+  }
+
+  if (data.customerTypeId && !(await findCustomerType(context.organizationId, data.customerTypeId))) {
+    return badType();
   }
 
   const [before] = await db
@@ -228,14 +291,17 @@ export async function updateParty(request: Request, type: PartyType, id: string)
     organizationId: context.organizationId,
     userId: context.userId,
     module: type,
-    action: `${type}.updated`,
+    action:
+      beforeRow.status === "archived" && updatedRow.status === "active"
+        ? `${type}.restored`
+        : `${type}.updated`,
     recordId: id,
     previousValue,
     newValue,
   });
 
   return NextResponse.json({
-    [type]: withBalance(updatedRow),
+    [type]: await shapeOne(type, context.organizationId, updatedRow),
   });
 }
 
@@ -271,6 +337,6 @@ export async function archiveParty(request: Request, type: PartyType, id: string
   });
 
   return NextResponse.json({
-    [type]: withBalance(archived as Row),
+    [type]: await shapeOne(type, context.organizationId, archived),
   });
 }

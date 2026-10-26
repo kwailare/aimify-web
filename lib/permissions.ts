@@ -48,6 +48,7 @@ export const PERMISSION_MODULES = [
       { key: "customers.create", label: "Add" },
       { key: "customers.edit", label: "Edit" },
       { key: "customers.archive", label: "Archive" },
+      { key: "customers.types", label: "Manage types" },
     ],
   },
   {
@@ -134,6 +135,7 @@ const DEFAULT_GRANTS: Record<EditablePermission, readonly string[]> = {
   "customers.create": SELLERS,
   "customers.edit": SELLERS,
   "customers.archive": SELLERS,
+  "customers.types": ADMINS,
   "suppliers.view": [...MANAGERS, "Accountant / Finance"],
   "suppliers.create": MANAGERS,
   "suppliers.edit": MANAGERS,

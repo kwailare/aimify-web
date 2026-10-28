@@ -214,7 +214,7 @@ export async function insertPurchase(entry: {
         ${id}, ${entry.organizationId}, n."purchaseSeq",
         'PO-' || CASE WHEN n."purchaseSeq" < 10000 THEN lpad(n."purchaseSeq"::text, 4, '0') ELSE n."purchaseSeq"::text END,
         ${entry.supplierId}, ${entry.warehouseId}, ${entry.status},
-        ${entry.orderDate}, ${entry.expectedDate}, ${entry.notes},
+        ${entry.orderDate.toISOString()}::timestamp, ${entry.expectedDate?.toISOString() ?? null}::timestamp, ${entry.notes},
         ${subtotal}, ${entry.discount}, ${entry.tax}, ${total},
         ${entry.amountPaid}, ${entry.userId}, ${entry.clientRef}
       FROM n

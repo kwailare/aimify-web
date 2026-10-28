@@ -118,8 +118,8 @@ const MODULES = [
     title: "Supplier Management",
     phase: "MVP",
     items: [
-      [D, "Supplier record: name, phone, email, address, contact person, products supplied, outstanding balance", "All fields, with the products that list the supplier as their usual one. Synced to the backend."],
-      [P, "Supplier history: purchases, payments, returns, balances", "Purchases, payments and balance are shown on the supplier. Returns come with Returns Management (Phase 2)."],
+      [D, "Supplier record: name, phone, email, address, contact person, products supplied, outstanding balance", "All fields plus payment terms; a page per supplier with what you owe and what is overdue, what you bought, products supplied with price history, and reorder suggestions that fill a purchase order. Search, filters, archive and restore, Excel import (with opening balances) and export."],
+      [P, "Supplier history: purchases, payments, returns, balances", "Purchases, payments, balance, price history and statements on each supplier's page. Returns come with Returns Management (Phase 2)."],
     ],
   },
   {
@@ -238,7 +238,6 @@ const DIFFERENTIATORS = [
 ];
 
 const NEXT_STEPS = [
-  ["Suppliers", "The remaining supplier items (returns come with Phase 2)."],
   ["Move expenses to the backend", "Today they live on one computer."],
   ["Plan upgrade/downgrade", "Decide on proration."],
   ["Go live with Paystack", "Live keys and business verification."],

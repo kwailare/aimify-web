@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
-import { and, asc, eq, inArray, ne, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, isNotNull, ne, sql } from "drizzle-orm";
+import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import { db } from "@/db";
-import { customers, customerTypes, sales, suppliers } from "@/db/schema";
+import { creditEntries, customers, customerTypes, purchases, sales, suppliers } from "@/db/schema";
 import { denyIfChangeForbidden, guardApi } from "@/lib/api-context";
 import { logAudit } from "@/lib/audit";
 import { roundMoney, type PartyType } from "@/lib/credit";
@@ -55,13 +56,67 @@ function withBalance(row: Row) {
   return { ...rest, balanceOwed: roundMoney(balance) };
 }
 
-// Customers also carry their type's name and what they have bought
-// (completed sales only: voided ones don't count).
+// Every row carries what is overdue on it (open debts past their due
+// date). Customers also carry their type's name and what they have bought
+// (completed sales only); suppliers, what has been bought from them
+// (purchases that reached their account, cancelled ones never do).
 async function shapeRows(type: PartyType, organizationId: string, rows: Row[]) {
   const shaped = rows.map(withBalance);
-  if (type !== "customer" || rows.length === 0) return shaped;
+  if (rows.length === 0) return shaped;
 
   const ids = rows.map((r) => r.id);
+  const inIds = (column: AnyPgColumn) =>
+    ids.length === 1 ? eq(column, ids[0]) : inArray(column, ids);
+
+  const overdueRows = await db
+    .select({
+      partyId: creditEntries.partyId,
+      overdue: sql<number>`coalesce(sum(${creditEntries.openAmount}), 0)::float8`,
+    })
+    .from(creditEntries)
+    .where(
+      and(
+        eq(creditEntries.organizationId, organizationId),
+        eq(creditEntries.partyType, type),
+        inIds(creditEntries.partyId),
+        sql`${creditEntries.openAmount} > 0`,
+        sql`${creditEntries.dueDate} < now()`,
+      ),
+    )
+    .groupBy(creditEntries.partyId);
+  const overdue = new Map(overdueRows.map((r) => [r.partyId, roundMoney(Number(r.overdue))]));
+
+  if (type === "supplier") {
+    const totals = await db
+      .select({
+        supplierId: purchases.supplierId,
+        total: sql<number>`coalesce(sum(${purchases.total}), 0)::float8`,
+        count: sql<number>`count(*)::int`,
+        last: sql<Date | null>`max(${purchases.orderDate})`.mapWith(purchases.orderDate),
+      })
+      .from(purchases)
+      .where(
+        and(
+          eq(purchases.organizationId, organizationId),
+          isNotNull(purchases.postedAt),
+          ne(purchases.status, "cancelled"),
+          inIds(purchases.supplierId),
+        ),
+      )
+      .groupBy(purchases.supplierId);
+    const bought = new Map(totals.map((t) => [t.supplierId, t]));
+    return shaped.map((row) => {
+      const b = bought.get(row.id as string);
+      return {
+        ...row,
+        overdue: overdue.get(row.id as string) ?? 0,
+        totalPurchases: roundMoney(Number(b?.total ?? 0)),
+        purchaseCount: b?.count ?? 0,
+        lastPurchaseAt: b?.last ? new Date(b.last).toISOString() : null,
+      };
+    });
+  }
+
   const [types, totals] = await Promise.all([
     db
       .select({ id: customerTypes.id, name: customerTypes.name })
@@ -75,13 +130,7 @@ async function shapeRows(type: PartyType, organizationId: string, rows: Row[]) {
         last: sql<Date | null>`max(${sales.saleDate})`.mapWith(sales.saleDate),
       })
       .from(sales)
-      .where(
-        and(
-          eq(sales.organizationId, organizationId),
-          eq(sales.status, "completed"),
-          ids.length === 1 ? eq(sales.customerId, ids[0]) : inArray(sales.customerId, ids),
-        ),
-      )
+      .where(and(eq(sales.organizationId, organizationId), eq(sales.status, "completed"), inIds(sales.customerId)))
       .groupBy(sales.customerId),
   ]);
   const typeName = new Map(types.map((t) => [t.id, t.name]));
@@ -92,6 +141,7 @@ async function shapeRows(type: PartyType, organizationId: string, rows: Row[]) {
     const typeId = (row as Record<string, unknown>).customerTypeId as string | null;
     return {
       ...row,
+      overdue: overdue.get(row.id as string) ?? 0,
       customerTypeName: typeId ? (typeName.get(typeId) ?? null) : null,
       totalSales: roundMoney(Number(b?.total ?? 0)),
       salesCount: b?.count ?? 0,

@@ -50,6 +50,7 @@ export const organizations = pgTable("organizations", {
   setupCompletedAt: timestamp(),
   purchaseSeq: integer().notNull().default(0),
   saleSeq: integer().notNull().default(0),
+  receiptSeq: integer().notNull().default(0),
   createdAt: timestamp().defaultNow().notNull(),
 });
 
@@ -397,6 +398,8 @@ export const suppliers = pgTable(
     email: text(),
     address: text(),
     notes: text(),
+    // Days after a purchase reaches their account that it is due.
+    paymentTermsDays: integer().notNull().default(30),
     // Authoritative, atomically updated running balance (what we owe them).
     // Not derived from summing credit_entries at read time, so a guarded
     // UPDATE on this column can never be raced the way a read-then-insert
@@ -421,6 +424,7 @@ export const customerTypes = pgTable(
       .references(() => organizations.id),
     name: text().notNull(),
     defaultCreditLimit: numeric({ mode: "number" }).notNull().default(0),
+    defaultPaymentTermsDays: integer().notNull().default(30),
     createdAt: timestamp().defaultNow().notNull(),
     updatedAt: timestamp().defaultNow().notNull(),
   },
@@ -441,6 +445,8 @@ export const customers = pgTable(
     address: text(),
     notes: text(),
     creditLimit: numeric({ mode: "number" }).notNull().default(0),
+    // Days after a sale that it is due.
+    paymentTermsDays: integer().notNull().default(30),
     // Authoritative, atomically updated running balance (what they owe us).
     // Not derived from summing credit_entries at read time, so a guarded
     // UPDATE on this column can never be raced the way a read-then-insert
@@ -477,9 +483,20 @@ export const creditEntries = pgTable(
     clientRef: text(),
     purchaseId: uuid().references((): AnyPgColumn => purchases.id),
     saleId: uuid().references((): AnyPgColumn => sales.id),
+    // For what raised the balance (a charge, or an adjustment up): how much
+    // of it is still unpaid, and when it is due. Payments and credits settle
+    // the oldest first, so the open amounts always add up to the balance.
+    openAmount: numeric({ mode: "number" }).notNull().default(0),
+    dueDate: timestamp(),
+    // Payments: how it was paid, and for a customer paying on account, its
+    // receipt number (RCPT-0001).
+    method: text(),
+    receiptNumber: text(),
     createdAt: timestamp().defaultNow().notNull(),
   },
   (table) => [
+    unique().on(table.organizationId, table.receiptNumber),
+    index("credit_entries_open_idx").on(table.organizationId, table.partyType, table.openAmount),
     index("credit_entries_party_idx").on(
       table.organizationId,
       table.partyType,
@@ -630,6 +647,8 @@ export const purchasePayments = pgTable(
     note: text(),
     userId: uuid().references(() => users.id),
     clientRef: text(),
+    // Set when a payment on the supplier's account settled this purchase.
+    creditEntryId: uuid().references((): AnyPgColumn => creditEntries.id),
     createdAt: timestamp().defaultNow().notNull(),
   },
   (table) => [
@@ -658,6 +677,8 @@ export const sales = pgTable(
       .references(() => warehouses.id),
     status: text().notNull().default("completed"),
     saleDate: timestamp().notNull(),
+    // Sale date plus the customer's payment terms; null for walk-ins.
+    dueDate: timestamp(),
     notes: text(),
     subtotal: numeric({ mode: "number" }).notNull().default(0),
     discount: numeric({ mode: "number" }).notNull().default(0),
@@ -720,10 +741,34 @@ export const salePayments = pgTable(
     note: text(),
     userId: uuid().references(() => users.id),
     clientRef: text(),
+    // Set when a payment on the customer's account settled this sale.
+    creditEntryId: uuid().references((): AnyPgColumn => creditEntries.id),
     createdAt: timestamp().defaultNow().notNull(),
   },
   (table) => [
     unique().on(table.organizationId, table.clientRef),
     index("sale_payments_sale_idx").on(table.saleId),
+  ],
+);
+
+// Which debts each payment (or credit) settled: one row per debt it went
+// to, oldest first. Receipts list them.
+export const creditAllocations = pgTable(
+  "credit_allocations",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    organizationId: uuid()
+      .notNull()
+      .references(() => organizations.id),
+    creditEntryId: uuid().references(() => creditEntries.id),
+    debitEntryId: uuid()
+      .notNull()
+      .references(() => creditEntries.id),
+    amount: numeric({ mode: "number" }).notNull(),
+    createdAt: timestamp().defaultNow().notNull(),
+  },
+  (table) => [
+    index("credit_allocations_credit_idx").on(table.creditEntryId),
+    index("credit_allocations_debit_idx").on(table.debitEntryId),
   ],
 );

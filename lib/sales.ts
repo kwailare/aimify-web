@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { and, asc, desc, eq, gte, inArray, lt, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { customers, products, saleLines, salePayments, sales, users, warehouses } from "@/db/schema";
+import { creditEntries, customers, products, saleLines, salePayments, sales, users, warehouses } from "@/db/schema";
 import { roundMoney } from "@/lib/credit";
 import { callDbFunction, type FunctionError, type FunctionOutcome } from "@/lib/db-functions";
 import { isUuid } from "@/lib/validation";
@@ -280,6 +280,11 @@ function shapeSale(
     warehouseName: row.warehouseName,
     status: row.status,
     saleDate: row.saleDate,
+    dueDate: row.dueDate,
+    daysOverdue:
+      row.status === "completed" && row.dueDate && total - amountPaid > 0.004
+        ? Math.max(0, Math.floor((Date.now() - row.dueDate.getTime()) / 86400000))
+        : 0,
     notes: row.notes,
     subtotal: roundMoney(row.subtotal),
     discount: roundMoney(row.discount),
@@ -369,9 +374,11 @@ export async function getSale(organizationId: string, saleId: string) {
         note: salePayments.note,
         createdAt: salePayments.createdAt,
         userName: users.name,
+        receiptNumber: creditEntries.receiptNumber,
       })
       .from(salePayments)
       .leftJoin(users, eq(salePayments.userId, users.id))
+      .leftJoin(creditEntries, eq(salePayments.creditEntryId, creditEntries.id))
       .where(eq(salePayments.saleId, saleId))
       .orderBy(asc(salePayments.createdAt)),
   ]);

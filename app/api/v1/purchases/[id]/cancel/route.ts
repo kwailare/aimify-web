@@ -40,5 +40,7 @@ export async function POST(request: Request, { params }: Params) {
   return NextResponse.json({
     purchase: await getPurchase(context.organizationId, id),
     refundOwed: outcome.result.refundOwed,
+    // Paid on it but used to settle other purchases from the supplier.
+    creditedToAccount: outcome.result.creditedToAccount ?? 0,
   });
 }

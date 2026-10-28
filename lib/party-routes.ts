@@ -163,6 +163,7 @@ export async function createParty(request: Request, type: PartyType) {
     const customerType = await findCustomerType(context.organizationId, data.customerTypeId);
     if (!customerType) return badType();
     if (data.creditLimit === undefined) values.creditLimit = customerType.defaultCreditLimit;
+    if (data.paymentTermsDays === undefined) values.paymentTermsDays = customerType.defaultPaymentTermsDays;
   }
 
   const [created] = await db

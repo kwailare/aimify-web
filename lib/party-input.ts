@@ -13,6 +13,7 @@ export type PartyFields = {
   notes?: string | null;
   creditLimit?: number;
   customerTypeId?: string | null;
+  paymentTermsDays?: number;
   status?: string;
 };
 
@@ -90,6 +91,14 @@ export function parsePartyFields(
       return { error: "customerTypeId must be a customer type id or null." };
     }
     data.customerTypeId = value;
+  }
+
+  if ("paymentTermsDays" in input) {
+    const value = input.paymentTermsDays;
+    if (typeof value !== "number" || !Number.isInteger(value) || value < 0 || value > 365) {
+      return { error: "paymentTermsDays must be a whole number of days from 0 to 365." };
+    }
+    data.paymentTermsDays = value;
   }
 
   if ("status" in input) {

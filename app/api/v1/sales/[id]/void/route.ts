@@ -42,11 +42,17 @@ export async function POST(request: Request, { params }: Params) {
     module: "sale",
     action: "sale.voided",
     recordId: id,
-    newValue: { reason, refundOwed: outcome.result.refundOwed },
+    newValue: {
+      reason,
+      refundOwed: outcome.result.refundOwed,
+      creditedToAccount: outcome.result.creditedToAccount,
+    },
   });
 
   return NextResponse.json({
     sale: await getSale(context.organizationId, id),
     refundOwed: outcome.result.refundOwed,
+    // Paid on the sale but used to settle the customer's other debts.
+    creditedToAccount: outcome.result.creditedToAccount ?? 0,
   });
 }

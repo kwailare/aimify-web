@@ -21,7 +21,7 @@ export async function seedDefaultCustomerTypes(organizationId: string) {
     .onConflictDoNothing();
 }
 
-type TypeFields = { name?: string; defaultCreditLimit?: number };
+type TypeFields = { name?: string; defaultCreditLimit?: number; defaultPaymentTermsDays?: number };
 
 function parseTypeFields(body: unknown): { data: TypeFields } | { error: string } {
   if (!body || typeof body !== "object") return { error: "A JSON body is required." };
@@ -41,6 +41,13 @@ function parseTypeFields(body: unknown): { data: TypeFields } | { error: string 
     }
     data.defaultCreditLimit = roundMoney(value);
   }
+  if ("defaultPaymentTermsDays" in input) {
+    const value = input.defaultPaymentTermsDays;
+    if (typeof value !== "number" || !Number.isInteger(value) || value < 0 || value > 365) {
+      return { error: "defaultPaymentTermsDays must be a whole number of days from 0 to 365." };
+    }
+    data.defaultPaymentTermsDays = value;
+  }
   return { data };
 }
 
@@ -49,6 +56,7 @@ function shape(row: typeof customerTypes.$inferSelect, customerCount = 0) {
     id: row.id,
     name: row.name,
     defaultCreditLimit: roundMoney(row.defaultCreditLimit),
+    defaultPaymentTermsDays: row.defaultPaymentTermsDays,
     customerCount,
   };
 }
@@ -111,7 +119,7 @@ export async function createCustomerType(request: Request) {
 
   const parsed = parseTypeFields(await request.json().catch(() => null));
   if ("error" in parsed) return NextResponse.json({ error: parsed.error }, { status: 400 });
-  const { name, defaultCreditLimit = 0 } = parsed.data;
+  const { name, defaultCreditLimit = 0, defaultPaymentTermsDays = 30 } = parsed.data;
   if (!name) return NextResponse.json({ error: "name is required." }, { status: 400 });
 
   if (await nameTaken(context.organizationId, name)) {
@@ -120,7 +128,7 @@ export async function createCustomerType(request: Request) {
 
   const [created] = await db
     .insert(customerTypes)
-    .values({ organizationId: context.organizationId, name, defaultCreditLimit })
+    .values({ organizationId: context.organizationId, name, defaultCreditLimit, defaultPaymentTermsDays })
     .returning();
 
   await logAudit({
@@ -129,7 +137,7 @@ export async function createCustomerType(request: Request) {
     module: "customer",
     action: "customer_type.created",
     recordId: created.id,
-    newValue: { name, defaultCreditLimit },
+    newValue: { name, defaultCreditLimit, defaultPaymentTermsDays },
   });
 
   return NextResponse.json({ customerType: shape(created) }, { status: 201 });
@@ -145,7 +153,10 @@ export async function updateCustomerType(request: Request, id: string) {
   const parsed = parseTypeFields(await request.json().catch(() => null));
   if ("error" in parsed) return NextResponse.json({ error: parsed.error }, { status: 400 });
   if (Object.keys(parsed.data).length === 0) {
-    return NextResponse.json({ error: "Send name or defaultCreditLimit." }, { status: 400 });
+    return NextResponse.json(
+      { error: "Send name, defaultCreditLimit or defaultPaymentTermsDays." },
+      { status: 400 },
+    );
   }
   if (parsed.data.name && (await nameTaken(context.organizationId, parsed.data.name, id))) {
     return NextResponse.json({ error: "This customer type already exists." }, { status: 409 });
@@ -163,8 +174,16 @@ export async function updateCustomerType(request: Request, id: string) {
     module: "customer",
     action: "customer_type.updated",
     recordId: id,
-    previousValue: { name: before.name, defaultCreditLimit: before.defaultCreditLimit },
-    newValue: { name: updated.name, defaultCreditLimit: updated.defaultCreditLimit },
+    previousValue: {
+      name: before.name,
+      defaultCreditLimit: before.defaultCreditLimit,
+      defaultPaymentTermsDays: before.defaultPaymentTermsDays,
+    },
+    newValue: {
+      name: updated.name,
+      defaultCreditLimit: updated.defaultCreditLimit,
+      defaultPaymentTermsDays: updated.defaultPaymentTermsDays,
+    },
   });
 
   const counts = await countCustomers(context.organizationId, id);

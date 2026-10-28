@@ -109,9 +109,9 @@ const MODULES = [
     title: "Credit Sales & Debt Management",
     phase: "MVP",
     items: [
-      [D, "Record credit sales and repayments", "Shared ledger; safe against double-posting and simultaneous payments."],
+      [D, "Record credit sales and repayments", "Shared ledger; safe against double-posting and simultaneous payments. A payment on account settles the oldest invoices first and marks them paid."],
       [D, "Track outstanding balances and set customer credit limits", "A credit sale over the limit is blocked; an Owner or Administrator can allow it, and that is recorded."],
-      [P, "Customer debt history, debt reports, receipts", "History, statements and payment receipts per customer. No debt report yet (Reports step)."],
+      [D, "Customer debt history, debt reports, receipts", "Payment terms and due dates; an aging report (not yet due, 1-30, 31-60, 61-90, 90+ days) for customers and suppliers with PDF and Excel; a 'who to chase' list; numbered receipts (RCPT-0001) showing which invoices each payment settled; statements."],
     ],
   },
   {
@@ -238,7 +238,7 @@ const DIFFERENTIATORS = [
 ];
 
 const NEXT_STEPS = [
-  ["Credit/debt and suppliers", "Debt reports, then the remaining supplier items."],
+  ["Suppliers", "The remaining supplier items (returns come with Phase 2)."],
   ["Move expenses to the backend", "Today they live on one computer."],
   ["Plan upgrade/downgrade", "Decide on proration."],
   ["Go live with Paystack", "Live keys and business verification."],

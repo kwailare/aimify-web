@@ -87,6 +87,17 @@ export const PERMISSION_MODULES = [
       { key: "sales.void", label: "Void" },
     ],
   },
+  {
+    module: "expenses",
+    label: "Expenses",
+    actions: [
+      { key: "expenses.view", label: "View" },
+      { key: "expenses.create", label: "Record" },
+      { key: "expenses.edit", label: "Edit" },
+      { key: "expenses.void", label: "Void" },
+      { key: "expenses.manage", label: "Categories, budgets & recurring" },
+    ],
+  },
 ] as const;
 
 type ModuleAction = (typeof PERMISSION_MODULES)[number]["actions"][number];
@@ -150,6 +161,11 @@ const DEFAULT_GRANTS: Record<EditablePermission, readonly string[]> = {
   "sales.discount": ADMINS,
   "sales.override": ADMINS,
   "sales.void": ADMINS,
+  "expenses.view": [...ADMINS, "Accountant / Finance", "Warehouse Manager"],
+  "expenses.create": [...ADMINS, "Accountant / Finance", "Warehouse Manager"],
+  "expenses.edit": [...ADMINS, "Accountant / Finance"],
+  "expenses.void": [...ADMINS, "Accountant / Finance"],
+  "expenses.manage": ADMINS,
 };
 
 const FIXED_GRANTS: Record<FixedPermission, readonly string[]> = {

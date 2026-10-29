@@ -51,6 +51,7 @@ export const organizations = pgTable("organizations", {
   purchaseSeq: integer().notNull().default(0),
   saleSeq: integer().notNull().default(0),
   receiptSeq: integer().notNull().default(0),
+  expenseSeq: integer().notNull().default(0),
   createdAt: timestamp().defaultNow().notNull(),
 });
 
@@ -770,5 +771,96 @@ export const creditAllocations = pgTable(
   (table) => [
     index("credit_allocations_credit_idx").on(table.creditEntryId),
     index("credit_allocations_debit_idx").on(table.debitEntryId),
+  ],
+);
+
+// What the business spends money on (Rent, Salaries, ...): each
+// organization's own list, with an optional monthly budget.
+export const expenseCategories = pgTable(
+  "expense_categories",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    organizationId: uuid()
+      .notNull()
+      .references(() => organizations.id),
+    name: text().notNull(),
+    // 0 means no budget.
+    monthlyBudget: numeric({ mode: "number" }).notNull().default(0),
+    createdAt: timestamp().defaultNow().notNull(),
+    updatedAt: timestamp().defaultNow().notNull(),
+  },
+  (table) => [unique().on(table.organizationId, table.name)],
+);
+
+// Expenses that come round again (rent, salaries): when one is due the app
+// offers to record it, and recording moves nextDueDate on.
+export const recurringExpenses = pgTable(
+  "recurring_expenses",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    organizationId: uuid()
+      .notNull()
+      .references(() => organizations.id),
+    categoryId: uuid()
+      .notNull()
+      .references(() => expenseCategories.id),
+    description: text().notNull(),
+    amount: numeric({ mode: "number" }).notNull(),
+    paymentMethod: text().notNull().default("cash"),
+    warehouseId: uuid().references(() => warehouses.id),
+    payee: text(),
+    // weekly | monthly | yearly
+    frequency: text().notNull(),
+    nextDueDate: timestamp().notNull(),
+    active: boolean().notNull().default(true),
+    createdBy: uuid().references(() => users.id),
+    createdAt: timestamp().defaultNow().notNull(),
+    updatedAt: timestamp().defaultNow().notNull(),
+  },
+  (table) => [index("recurring_expenses_org_idx").on(table.organizationId)],
+);
+
+// Money spent, numbered per organization (EXP-0001). Edits keep who and
+// when, and every change is in the audit log; a mistake is voided (with a
+// reason), never deleted.
+export const expenses = pgTable(
+  "expenses",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    organizationId: uuid()
+      .notNull()
+      .references(() => organizations.id),
+    number: integer().notNull(),
+    reference: text().notNull(),
+    categoryId: uuid()
+      .notNull()
+      .references(() => expenseCategories.id),
+    description: text(),
+    amount: numeric({ mode: "number" }).notNull(),
+    expenseDate: timestamp().notNull(),
+    paymentMethod: text().notNull().default("cash"),
+    warehouseId: uuid().references(() => warehouses.id),
+    payee: text(),
+    // The supplier's receipt or invoice number, if any.
+    receiptNumber: text(),
+    attachmentUrl: text(),
+    attachmentName: text(),
+    attachmentType: text(),
+    // recorded | voided
+    status: text().notNull().default("recorded"),
+    voidReason: text(),
+    voidedAt: timestamp(),
+    voidedBy: uuid().references(() => users.id),
+    recurringId: uuid().references(() => recurringExpenses.id),
+    createdBy: uuid().references(() => users.id),
+    updatedBy: uuid().references(() => users.id),
+    clientRef: text(),
+    createdAt: timestamp().defaultNow().notNull(),
+    updatedAt: timestamp().defaultNow().notNull(),
+  },
+  (table) => [
+    unique().on(table.organizationId, table.number),
+    unique().on(table.organizationId, table.clientRef),
+    index("expenses_org_date_idx").on(table.organizationId, table.expenseDate),
   ],
 );

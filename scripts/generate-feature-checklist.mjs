@@ -126,8 +126,8 @@ const MODULES = [
     title: "Expense Management",
     phase: "MVP",
     items: [
-      [P, "Record expenses by category", "In the desktop app, saved on that computer only. Not synced."],
-      [P, "Expense fields: category, description, amount, date, payment method, warehouse, user, receipt", "Has category, note, amount, date and payment method. No warehouse, user or receipt attachment."],
+      [D, "Record expenses by category", "On the server (EXP-0001), offline too. Owner-managed categories with monthly budgets; recurring expenses (rent, salaries) recorded in one click when due; a report by category, month and warehouse with PDF and Excel. Old expenses saved on a computer can be uploaded."],
+      [D, "Expense fields: category, description, amount, date, payment method, warehouse, user, receipt", "All of them, plus who was paid and their receipt number; a photo or PDF of the receipt is attached. Edits keep who and when; mistakes are voided with a reason."],
     ],
   },
   {
@@ -238,7 +238,6 @@ const DIFFERENTIATORS = [
 ];
 
 const NEXT_STEPS = [
-  ["Move expenses to the backend", "Today they live on one computer."],
   ["Plan upgrade/downgrade", "Decide on proration."],
   ["Go live with Paystack", "Live keys and business verification."],
 ];
@@ -358,7 +357,7 @@ const html = `<!doctype html>
   <div class="subtitle">Feature Checklist</div>
   <div class="meta">Every item in the Full Proposed Feature Set (August 2026), ticked against what is built. Status as of ${AS_OF}, checked against the aimify-web and aimify_desktop repositories.</div>
 
-  <div class="callout"><b>Where things stand.</b> ${all[D]} of ${allTotal} proposed items are done and ${all[P]} are partly done. For the MVP, ${mvpT[D]} of ${mvpTotal} items are done and ${mvpT[P]} partly done. The account, subscription, payments, admin, inventory, customer, supplier and credit foundations are in place. Sales and purchases are on the server: a sale takes stock out of its warehouse and a received purchase adds it, both posting to the customer's or supplier's account. The main MVP gaps now are <b>expenses</b> (still saved only on one computer), the sales-based <b>dashboard</b> cards and the sales and financial <b>reports</b>. Offline sync and two-factor sign-in were delivered ahead of plan.</div>
+  <div class="callout"><b>Where things stand.</b> ${all[D]} of ${allTotal} proposed items are done and ${all[P]} are partly done. For the MVP, ${mvpT[D]} of ${mvpTotal} items are done and ${mvpT[P]} partly done. The account, subscription, payments, admin, inventory, customer, supplier and credit foundations are in place. Sales and purchases are on the server: a sale takes stock out of its warehouse and a received purchase adds it, both posting to the customer's or supplier's account. Expenses are on the server too, with categories, budgets, recurring expenses and receipts. The main MVP gaps now are the sales-based <b>dashboard</b> cards and the sales and financial <b>reports</b>. Offline sync and two-factor sign-in were delivered ahead of plan.</div>
 
   <div class="legend"><span class="lg">${pill(D)} built and tested</span><span class="lg">${pill(P)} incomplete, or saved on one computer only</span><span class="lg">${pill(N)} nothing built yet</span></div>
 

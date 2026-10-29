@@ -211,6 +211,20 @@
       "when": 1793194412745,
       "tag": "0029_open_amounts",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1793270963616,
+      "tag": "0030_parched_bloodaxe",
+      "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1793270967567,
+      "tag": "0031_seed_expense_categories",
+      "breakpoints": true
     }
   ]
 }

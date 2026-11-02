@@ -3,8 +3,18 @@ import { auth } from "@/auth";
 import { db } from "@/db";
 import { memberships, organizations, users } from "@/db/schema";
 import { logAudit } from "@/lib/audit";
+import { applyScheduledPlanChanges } from "@/lib/plan-change";
 
 type Organization = typeof organizations.$inferSelect;
+
+/** A cheaper plan chosen for a period that has now started. */
+async function applyPlanChangeIfDue(organization: Organization) {
+  const at = organization.scheduledPlanAt;
+  if (!organization.scheduledPlanId || !at || at > new Date()) return organization;
+  await applyScheduledPlanChanges(new Date(), organization.id);
+  const [current] = await db.select().from(organizations).where(eq(organizations.id, organization.id)).limit(1);
+  return current ?? organization;
+}
 
 async function expireTrialIfNeeded(organization: Organization) {
   const { trialEndsAt } = organization;
@@ -76,7 +86,7 @@ export async function getOrgContextForUser(userId: string) {
     user,
     membership: {
       role: row.role,
-      organization: await expireTrialIfNeeded(row.organization),
+      organization: await expireTrialIfNeeded(await applyPlanChangeIfDue(row.organization)),
     },
   };
 }

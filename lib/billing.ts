@@ -1,7 +1,7 @@
 import { randomBytes } from "crypto";
 import { and, eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
-import { organizations, paymentMethods, payments } from "@/db/schema";
+import { organizations, paymentMethods, payments, plans } from "@/db/schema";
 import { logAudit } from "@/lib/audit";
 import { sendReceiptEmail } from "@/lib/billing-emails";
 import { openSecret, sealSecret } from "@/lib/crypto-box";
@@ -10,7 +10,7 @@ import {
   initializeTransaction,
   type PaystackTransaction,
 } from "@/lib/paystack";
-import { getOrgPlan } from "@/lib/plans";
+import { getOrgPlan, toOrgPlan } from "@/lib/plans";
 import { SITE_URL } from "@/lib/site";
 
 export const GRACE_DAYS = 3;
@@ -129,12 +129,25 @@ export async function removePaymentMethod(organizationId: string) {
     .where(eq(paymentMethods.organizationId, organizationId));
 }
 
+/**
+ * The plan a payment made now pays for: the current one, or a cheaper one
+ * already chosen to start by the time the period being bought begins.
+ */
+export async function planForNextPeriod(organizationId: string, now = new Date()) {
+  const [org] = await db.select().from(organizations).where(eq(organizations.id, organizationId)).limit(1);
+  if (org?.scheduledPlanId && org.scheduledPlanAt && org.scheduledPlanAt <= billingPeriodBase(org, now)) {
+    const [row] = await db.select().from(plans).where(eq(plans.id, org.scheduledPlanId)).limit(1);
+    if (row?.isActive) return toOrgPlan(row);
+  }
+  return getOrgPlan(organizationId);
+}
+
 export async function startCheckout(entry: {
   organizationId: string;
   userId: string;
   email: string;
 }) {
-  const plan = await getOrgPlan(entry.organizationId);
+  const plan = await planForNextPeriod(entry.organizationId);
 
   if (!(plan.priceMonthly > 0)) {
     throw new PaystackError("This plan has no price set.", "rejected");
@@ -151,6 +164,7 @@ export async function startCheckout(entry: {
     providerReference: reference,
     description: `${plan.name} subscription`,
     kind: "checkout",
+    planId: plan.id,
     userId: entry.userId,
   });
 
@@ -287,7 +301,53 @@ export async function applyTransaction(
     return { outcome: "activated", organizationId: org.id, periodEnd: null };
   }
 
+  if (payment.kind === "upgrade") {
+    // The rest of the current period on a dearer plan: the plan changes
+    // now, the renewal date doesn't.
+    await db
+      .update(organizations)
+      .set({ planId: payment.planId, scheduledPlanId: null, scheduledPlanAt: null })
+      .where(eq(organizations.id, org.id));
+    const [plan] = payment.planId
+      ? await db.select({ name: plans.name }).from(plans).where(eq(plans.id, payment.planId)).limit(1)
+      : [];
+
+    await logAudit({
+      organizationId: org.id,
+      userId: payment.userId,
+      module: "billing",
+      action: "billing.plan_upgraded",
+      recordId: payment.id,
+      previousValue: { planId: org.planId },
+      newValue: { plan: plan?.name ?? null, reference: tx.reference, amount: payment.amount },
+    });
+
+    if (org.currentPeriodEnd) {
+      await sendReceiptEmail({
+        organizationId: org.id,
+        organizationName: org.name,
+        amount: payment.amount,
+        reference: tx.reference,
+        periodEnd: org.currentPeriodEnd,
+        kind: payment.kind,
+        planName: plan?.name,
+      });
+    }
+
+    return { outcome: "activated", organizationId: org.id, periodEnd: org.currentPeriodEnd };
+  }
+
   const periodStart = billingPeriodBase(org, now);
+  // A period starting now is on the plan it was paid for (a cheaper one
+  // chosen for it takes effect). Paying ahead leaves the plan as it is
+  // until then.
+  const planNow =
+    payment.planId && periodStart <= now
+      ? {
+          planId: payment.planId,
+          ...(org.scheduledPlanId === payment.planId ? { scheduledPlanId: null, scheduledPlanAt: null } : {}),
+        }
+      : {};
   const periodEnd = addMonths(periodStart, 1);
 
   await db
@@ -303,6 +363,7 @@ export async function applyTransaction(
       cancelAtPeriodEnd: false,
       renewalAttempts: 0,
       lastRenewalAttemptAt: null,
+      ...planNow,
     })
     .where(eq(organizations.id, org.id));
 

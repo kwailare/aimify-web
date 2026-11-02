@@ -180,7 +180,7 @@ const MODULES = [
     title: "Payment System",
     phase: "MVP",
     items: [
-      [P, "Subscribe, renew, upgrade, downgrade, cancel", "Subscribe, automatic renewal and cancel are built. Upgrade/downgrade waits on a proration decision."],
+      [D, "Subscribe, renew, upgrade, downgrade, cancel", "All built. The Owner picks a plan on the billing page: an upgrade starts at once and charges the difference for the days left in the paid period; a downgrade starts when that period ends (no refunds) and can be undone until then. Being over a cheaper plan's limits deletes nothing; adding more is blocked until under."],
       [D, "Payment verification, history and receipts", "Paystack in TEST mode: live keys and business verification are still needed."],
       [P, "Payment provider abstraction (swap or add Flutterwave later)", "Payments record their provider, but the logic is written directly against Paystack."],
     ],
@@ -238,7 +238,7 @@ const DIFFERENTIATORS = [
 ];
 
 const NEXT_STEPS = [
-  ["Plan upgrade/downgrade", "Decide on proration."],
+  ["Set up the plan lineup", "Create and price the plans on the admin Plans page; customers can then change plan themselves."],
   ["Go live with Paystack", "Live keys and business verification."],
 ];
 

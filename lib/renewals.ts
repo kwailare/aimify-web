@@ -21,6 +21,7 @@ import {
   chargeAuthorization,
   isPaystackConfigured,
 } from "@/lib/paystack";
+import { applyScheduledPlanChanges } from "@/lib/plan-change";
 import { getOrgPlan } from "@/lib/plans";
 import { notifySubscriptionChange } from "@/lib/subscription-notices";
 
@@ -38,6 +39,7 @@ export type RenewalSummary = {
   cancelledAtPeriodEnd: number;
   reminders: number;
   abandoned: number;
+  planChanges: number;
   skipped: string | null;
 };
 
@@ -60,6 +62,7 @@ async function attemptCharge(org: Org, now: Date) {
     providerReference: reference,
     description: `${plan.name} subscription (renewal)`,
     kind: "renewal",
+    planId: plan.id,
   });
 
   let outcome: string;
@@ -114,8 +117,13 @@ export async function runRenewals(now = new Date()): Promise<RenewalSummary> {
     cancelledAtPeriodEnd: 0,
     reminders: 0,
     abandoned: 0,
+    planChanges: 0,
     skipped: null,
   };
+
+  // Cheaper plans chosen for periods that have now started, before
+  // anything is charged at the old price.
+  summary.planChanges = await applyScheduledPlanChanges(now);
 
   if (!isPaystackConfigured()) {
     summary.skipped = "Paystack is not configured.";

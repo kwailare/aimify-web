@@ -18,6 +18,7 @@ export type PlanLimits = {
 export type OrgPlan = PlanLimits & {
   id: string | null;
   name: string;
+  description?: string | null;
   priceMonthly: number;
 };
 
@@ -54,10 +55,11 @@ export async function getDefaultPlan(): Promise<OrgPlan> {
   return row ? toOrgPlan(row) : FALLBACK_PLAN;
 }
 
-function toOrgPlan(row: typeof plans.$inferSelect): OrgPlan {
+export function toOrgPlan(row: typeof plans.$inferSelect): OrgPlan {
   return {
     id: row.id,
     name: row.name,
+    description: row.description,
     priceMonthly: row.priceMonthly,
     maxUsers: row.maxUsers,
     maxWarehouses: row.maxWarehouses,

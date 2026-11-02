@@ -3,11 +3,13 @@ import { Check } from "lucide-react";
 import { redirect } from "next/navigation";
 import { BillingControls } from "@/components/billing-controls";
 import { CancelSubscriptionButton } from "@/components/cancel-subscription-button";
+import { PlanPicker, type PlanOption } from "@/components/plan-picker";
 import { db } from "@/db";
 import { payments } from "@/db/schema";
 import { getOrgPlan, getUsage, limitFor, type LimitKey } from "@/lib/plans";
 import { formatDate } from "@/lib/format-date";
 import { getPaymentMethod } from "@/lib/billing";
+import { activePlans } from "@/lib/plan-change";
 import { getOrgContext } from "@/lib/org";
 import { canManageTeam } from "@/lib/roles";
 import {
@@ -89,10 +91,29 @@ export default async function DashboardBillingPage({
     .orderBy(desc(payments.createdAt))
     .limit(50);
 
-  const [plan, usage] = await Promise.all([
+  const [plan, usage, offered] = await Promise.all([
     getOrgPlan(organization.id),
     getUsage(organization.id),
+    activePlans(),
   ]);
+  // Every plan on offer, and the current one even if it's no longer offered.
+  const planOptions: PlanOption[] = [
+    ...offered,
+    ...(plan.id && !offered.some((p) => p.id === plan.id) ? [plan] : []),
+  ]
+    .sort((a, b) => a.priceMonthly - b.priceMonthly)
+    .map((p) => ({
+      id: p.id!,
+      name: p.name,
+      description: p.description ?? null,
+      priceMonthly: p.priceMonthly,
+      limits: { users: p.maxUsers, warehouses: p.maxWarehouses, products: p.maxProducts },
+    }));
+  const scheduled =
+    organization.scheduledPlanId && organization.scheduledPlanAt
+      ? { planId: organization.scheduledPlanId, at: organization.scheduledPlanAt.toISOString() }
+      : null;
+  const scheduledName = scheduled ? planOptions.find((p) => p.id === scheduled.planId)?.name : null;
   const usageRows: { key: LimitKey; label: string; used: number }[] = [
     { key: "users", label: "Team members", used: usage.users },
     { key: "warehouses", label: "Active warehouses", used: usage.warehouses },
@@ -145,6 +166,9 @@ export default async function DashboardBillingPage({
             <p className="plan-summary-name">{plan.name}</p>
             <p className="plan-summary-note">
               {planNote(status, organization.trialEndsAt)}
+              {scheduled && scheduledName
+                ? ` · moves to ${scheduledName} on ${formatLong(new Date(scheduled.at))}`
+                : ""}
             </p>
           </div>
           <p className="plan-summary-price">
@@ -205,13 +229,27 @@ export default async function DashboardBillingPage({
           })}
         </div>
         <p className="dash-card-note" style={{ marginTop: "1rem" }}>
-          Limits with no cap show as unlimited. To change your plan, email{" "}
-          <a className="dash-banner-link" href="mailto:support@aimify.app">
-            support@aimify.app
-          </a>
-          .
+          Limits with no cap show as unlimited.
         </p>
       </div>
+
+      {status !== "suspended" && planOptions.length > 1 && (
+        <div className="dash-card">
+          <p className="dash-card-label">Change plan</p>
+          <p className="dash-card-note" style={{ marginBottom: "1rem" }}>
+            A dearer plan starts now: you pay the difference for the days left in
+            the period you&apos;ve paid for. A cheaper plan starts when that period
+            ends. Nothing is ever deleted if you&apos;re over a plan&apos;s limits;
+            you just can&apos;t add more until you&apos;re under.
+          </p>
+          <PlanPicker
+            plans={planOptions}
+            currentPlanId={plan.id}
+            scheduled={scheduled}
+            isOwner={role === "Owner"}
+          />
+        </div>
+      )}
 
       <div className="dash-card">
         <p className="dash-card-label">Billing history</p>

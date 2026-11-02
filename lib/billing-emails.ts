@@ -56,7 +56,20 @@ export function sendReceiptEmail(entry: {
   reference: string;
   periodEnd: Date;
   kind: string;
+  planName?: string;
 }) {
+  if (entry.kind === "upgrade") {
+    return send(
+      entry.organizationId,
+      entry.organizationName,
+      `${entry.organizationName} is now on ${entry.planName ?? "its new plan"}`,
+      [
+        `Thank you. We received ${naira.format(entry.amount)} for ${entry.organizationName}: the difference for the rest of the current period.`,
+        `Your ${entry.planName ?? "new"} plan starts now. It renews on ${formatDate(entry.periodEnd)} at its monthly price. Reference: ${entry.reference}.`,
+      ],
+      "View billing history",
+    );
+  }
   return send(
     entry.organizationId,
     entry.organizationName,

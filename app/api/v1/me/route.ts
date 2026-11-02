@@ -3,6 +3,9 @@ import { verifyApiToken } from "@/lib/api-auth";
 import { getOrgContextForUser } from "@/lib/org";
 import { legacyPermissions } from "@/lib/permissions";
 import { getPermissionsFor } from "@/lib/role-permissions";
+import { eq } from "drizzle-orm";
+import { db } from "@/db";
+import { plans } from "@/db/schema";
 import { getOrgPlan, getUsage } from "@/lib/plans";
 
 export async function GET(request: Request) {
@@ -19,11 +22,16 @@ export async function GET(request: Request) {
   }
 
   const organizationId = context.membership?.organization.id;
-  const [plan, usage, permissions] = await Promise.all([
+  const scheduledPlanId = context.membership?.organization.scheduledPlanId;
+  const [plan, usage, permissions, [scheduledPlan]] = await Promise.all([
     organizationId ? getOrgPlan(organizationId) : null,
     organizationId ? getUsage(organizationId) : null,
     getPermissionsFor(organizationId, context.membership?.role),
+    scheduledPlanId
+      ? db.select({ name: plans.name, priceMonthly: plans.priceMonthly }).from(plans).where(eq(plans.id, scheduledPlanId))
+      : [],
   ]);
+  const scheduledAt = context.membership?.organization.scheduledPlanAt;
 
   return NextResponse.json({
     user: {
@@ -61,6 +69,12 @@ export async function GET(request: Request) {
     plan: plan
       ? {
           name: plan.name,
+          priceMonthly: plan.priceMonthly,
+          // A cheaper plan starting when the paid period ends.
+          scheduled:
+            scheduledPlan && scheduledAt
+              ? { name: scheduledPlan.name, priceMonthly: scheduledPlan.priceMonthly, at: scheduledAt }
+              : null,
           limits: {
             users: plan.maxUsers,
             warehouses: plan.maxWarehouses,

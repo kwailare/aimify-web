@@ -4,7 +4,8 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { organizations } from "@/db/schema";
 import { logAudit } from "@/lib/audit";
-import { removePaymentMethod, startCheckout } from "@/lib/billing";
+import { getPaymentMethod, removePaymentMethod, startCheckout } from "@/lib/billing";
+import { PlanChangeError, changePlan, quotePlanChange } from "@/lib/plan-change";
 import { getOrgContext } from "@/lib/org";
 import { PaystackError } from "@/lib/paystack";
 import { isRateLimited, recordLoginAttempt } from "@/lib/rate-limit";
@@ -112,4 +113,71 @@ export async function resumeSubscriptionAction() {
   });
 
   return { success: true };
+}
+
+async function planOwner() {
+  const manager = await billingManager();
+  if (!manager || manager.role !== "Owner") return null;
+  return manager;
+}
+
+/** What choosing a plan would mean, for the confirmation step. */
+export async function quotePlanChangeAction(planId: string) {
+  const owner = await planOwner();
+  if (!owner) return { error: "Only the Owner can change the plan." };
+  try {
+    const q = await quotePlanChange(owner.organization.id, planId);
+    const hasCard = Boolean(await getPaymentMethod(owner.organization.id));
+    return {
+      quote: {
+        kind: q.kind,
+        target: q.target.name,
+        targetPrice: q.target.priceMonthly,
+        current: q.current.name,
+        amountDue: q.amountDue,
+        daysLeft: q.daysLeft,
+        effectiveAt: q.effectiveAt?.toISOString() ?? null,
+        periodEnd: q.periodEnd?.toISOString() ?? null,
+        overLimits: q.overLimits,
+        scheduled: q.scheduled ? { plan: q.scheduled.plan.name, at: q.scheduled.at.toISOString() } : null,
+        hasCard,
+      },
+    };
+  } catch (error) {
+    if (error instanceof PlanChangeError) return { error: error.message };
+    throw error;
+  }
+}
+
+/**
+ * Moves to [planId]: at once, at the end of the period, or after paying the
+ * difference (the saved card, or Paystack's page when [checkout]).
+ */
+export async function changePlanAction(planId: string, options: { checkout?: boolean } = {}) {
+  const owner = await planOwner();
+  if (!owner) return { error: "Only the Owner can change the plan." };
+
+  try {
+    // Only a change that charges counts towards the payment attempts limit.
+    const quote = await quotePlanChange(owner.organization.id, planId);
+    if (quote.kind === "upgrade") {
+      const identifiers = [`checkout:${owner.organization.id}`];
+      if (await isRateLimited(identifiers)) {
+        return { error: "Too many payment attempts. Please wait a few minutes." };
+      }
+      await recordLoginAttempt(identifiers, false);
+    }
+
+    const result = await changePlan({
+      organizationId: owner.organization.id,
+      userId: owner.user.id,
+      email: owner.user.email,
+      targetPlanId: planId,
+      checkout: options.checkout,
+    });
+    return result.status === "scheduled" ? { ...result, at: result.at.toISOString() } : result;
+  } catch (error) {
+    if (error instanceof PlanChangeError || error instanceof PaystackError) return { error: error.message };
+    return { error: "We couldn't change the plan. Please try again." };
+  }
 }

@@ -43,6 +43,10 @@ export const organizations = pgTable("organizations", {
   subscriptionStatus: text().notNull().default("pending"),
   trialEndsAt: timestamp(),
   planId: uuid().references(() => plans.id),
+  // A cheaper plan chosen to start at the end of the paid period.
+  scheduledPlanId: uuid().references(() => plans.id),
+  // When it starts: the end of the period paid for when it was chosen.
+  scheduledPlanAt: timestamp(),
   currentPeriodEnd: timestamp(),
   cancelAtPeriodEnd: boolean().notNull().default(false),
   renewalAttempts: integer().notNull().default(0),
@@ -236,6 +240,8 @@ export const payments = pgTable(
     providerReference: text().unique(),
     description: text(),
     kind: text().notNull().default("checkout"),
+    // The plan this payment was for (checkout, renewal or upgrade).
+    planId: uuid().references(() => plans.id),
     channel: text(),
     userId: uuid().references(() => users.id),
     periodStart: timestamp(),

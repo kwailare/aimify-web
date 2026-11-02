@@ -143,8 +143,8 @@ const MODULES = [
     title: "Dashboard & Analytics",
     phase: "MVP",
     items: [
-      [P, "Key cards (products, inventory value, sales, purchases, customer and supplier debt, expenses, profit, low stock)", "Inventory cards are built on web and desktop. Sales, profit and debt cards come with the dashboard step."],
-      [P, "Charts (sales, purchases, expenses, top sellers, stock movement, debt, warehouse performance)", "Stock movement, stock value and stock health charts are built. Sales-based charts are not."],
+      [D, "Key cards (products, inventory value, sales, purchases, customer and supplier debt, expenses, profit, low stock)", "All of them on the desktop, for today, this week, this month, last month or this year, each compared with the period before; gross profit (with margin) and net profit. The web dashboard shows this month so far. Each role only sees the modules it may see."],
+      [D, "Charts (sales, purchases, expenses, top sellers, stock movement, debt, warehouse performance)", "Sales trend with gross profit, money in vs out (sales, purchases, expenses), top products and customers, what is owed and overdue both ways, and sales and stock value by warehouse, alongside the existing stock movement and stock health charts."],
     ],
   },
   {
@@ -357,7 +357,7 @@ const html = `<!doctype html>
   <div class="subtitle">Feature Checklist</div>
   <div class="meta">Every item in the Full Proposed Feature Set (August 2026), ticked against what is built. Status as of ${AS_OF}, checked against the aimify-web and aimify_desktop repositories.</div>
 
-  <div class="callout"><b>Where things stand.</b> ${all[D]} of ${allTotal} proposed items are done and ${all[P]} are partly done. For the MVP, ${mvpT[D]} of ${mvpTotal} items are done and ${mvpT[P]} partly done. The account, subscription, payments, admin, inventory, customer, supplier and credit foundations are in place. Sales and purchases are on the server: a sale takes stock out of its warehouse and a received purchase adds it, both posting to the customer's or supplier's account. Expenses are on the server too, with categories, budgets, recurring expenses and receipts. The main MVP gaps now are the sales-based <b>dashboard</b> cards and the sales and financial <b>reports</b>. Offline sync and two-factor sign-in were delivered ahead of plan.</div>
+  <div class="callout"><b>Where things stand.</b> ${all[D]} of ${allTotal} proposed items are done and ${all[P]} are partly done. For the MVP, ${mvpT[D]} of ${mvpTotal} items are done and ${mvpT[P]} partly done. The account, subscription, payments, admin, inventory, customer, supplier and credit foundations are in place. Sales and purchases are on the server: a sale takes stock out of its warehouse and a received purchase adds it, both posting to the customer's or supplier's account. Expenses are on the server too, with categories, budgets, recurring expenses and receipts. The dashboard shows sales, gross and net profit, spending and debts for a chosen period with charts. The main MVP gap now is the sales, purchase and financial <b>reports</b>. Offline sync and two-factor sign-in were delivered ahead of plan.</div>
 
   <div class="legend"><span class="lg">${pill(D)} built and tested</span><span class="lg">${pill(P)} incomplete, or saved on one computer only</span><span class="lg">${pill(N)} nothing built yet</span></div>
 

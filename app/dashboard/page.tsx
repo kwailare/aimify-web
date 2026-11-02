@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowUpRight, Check, X } from "lucide-react";
+import { thisMonthSummary } from "@/lib/business-summary";
 import { getDashboardOverview } from "@/lib/dashboard-overview";
 import { getOrgContext } from "@/lib/org";
 import { describeAuditAction, describeAuditDetails } from "@/lib/audit";
@@ -31,6 +32,12 @@ export default async function DashboardOverviewPage() {
   const { user } = context;
   const { organization, role } = context.membership;
   const data = await getDashboardOverview(organization.id);
+
+  // This month so far against last month, with only the figures this role
+  // may see (the same rules as the desktop app).
+  const { summary: month, monthName } = await thisMonthSummary(organization.id, role);
+  const vsLastMonth = (change: number | null | undefined) =>
+    change == null ? "No sales last month to compare" : `${change > 0 ? "+" : ""}${change.toLocaleString("en-US")}% vs last month`;
 
   const firstName = user.name.split(" ")[0] || "there";
   const status = organization.subscriptionStatus;
@@ -103,8 +110,8 @@ export default async function DashboardOverviewPage() {
         <p className="dash-page-eyebrow">Overview</p>
         <h1 className="dash-page-title">Welcome back, {firstName}</h1>
         <p className="dash-page-subtitle">
-          Here&apos;s the current state of {organization.name}&apos;s stock and
-          Aimify account.
+          Here&apos;s how {organization.name} is doing this month, its stock and
+          its Aimify account.
         </p>
       </div>
 
@@ -126,6 +133,70 @@ export default async function DashboardOverviewPage() {
           <ArrowUpRight size={16} aria-hidden="true" />
         </Link>
       </div>
+
+      {(month.sales || month.expenses || month.receivables || month.payables) && (
+        <div>
+          <p className="dash-card-label" style={{ marginBottom: 12 }}>
+            {monthName} so far
+          </p>
+          <div className="dash-grid dash-grid--4">
+            {month.sales && (
+              <div className="dash-card">
+                <p className="dash-card-label">Sales</p>
+                <p className="dash-card-value">{money(month.sales.total)}</p>
+                <p className="dash-card-note">
+                  {month.sales.count} {month.sales.count === 1 ? "sale" : "sales"} · {vsLastMonth(month.sales.change)}
+                </p>
+              </div>
+            )}
+            {month.sales && (
+              <div className="dash-card">
+                <p className="dash-card-label">Gross profit</p>
+                <p className="dash-card-value">{money(month.sales.grossProfit)}</p>
+                <p className="dash-card-note">
+                  {month.sales.margin == null ? "Sales less what the goods cost" : `${month.sales.margin}% margin`}
+                </p>
+              </div>
+            )}
+            {month.netProfit && (
+              <div className="dash-card">
+                <p className="dash-card-label">Net profit</p>
+                <p className="dash-card-value">{money(month.netProfit.value)}</p>
+                <p className="dash-card-note">Gross profit less expenses</p>
+              </div>
+            )}
+            {month.expenses && (
+              <div className="dash-card">
+                <p className="dash-card-label">Expenses</p>
+                <p className="dash-card-value">{money(month.expenses.total)}</p>
+                <p className="dash-card-note">
+                  {month.expenses.change == null
+                    ? "Recorded this month"
+                    : `${month.expenses.change > 0 ? "+" : ""}${month.expenses.change}% vs last month`}
+                </p>
+              </div>
+            )}
+            {month.receivables && (
+              <div className="dash-card">
+                <p className="dash-card-label">Customers owe you</p>
+                <p className="dash-card-value">{money(month.receivables.owed)}</p>
+                <p className="dash-card-note">
+                  {month.receivables.overdue > 0 ? `${money(month.receivables.overdue)} overdue` : "Nothing overdue"}
+                </p>
+              </div>
+            )}
+            {month.payables && (
+              <div className="dash-card">
+                <p className="dash-card-label">You owe suppliers</p>
+                <p className="dash-card-value">{money(month.payables.owed)}</p>
+                <p className="dash-card-note">
+                  {month.payables.overdue > 0 ? `${money(month.payables.overdue)} overdue` : "Nothing overdue"}
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="dash-grid dash-grid--4">
         <div className="dash-card">

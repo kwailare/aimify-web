@@ -151,11 +151,11 @@ const MODULES = [
     title: "Reports",
     phase: "MVP",
     items: [
-      [P, "Inventory reports: current stock, valuation, movement, low/out of stock, adjustments", "Shown in the desktop Reports and Inventory screens, without date or user filters."],
-      [N, "Sales reports (by period, product, customer, employee, warehouse)", "Sales are recorded; the Sales screen filters by period and customer. Reports come with the reports step."],
-      [N, "Purchase reports (by supplier, product, warehouse)", ""],
-      [N, "Financial reports: revenue, expenses, gross profit, debts, payments", ""],
-      [N, "Filtering by date, warehouse, user, customer, supplier, product", "Excel/PDF export is planned for Phase 2."],
+      [D, "Inventory reports: current stock, valuation, movement, low/out of stock, adjustments", "Valuation, stock health and the stock movement history: by product, type and person, each movement with who made it and the sale or purchase behind it; adjustments are a filter."],
+      [D, "Sales reports (by period, product, customer, employee, warehouse)", "By day or month, product, customer, staff member and warehouse: units, sales, discounts, tax, cost, gross profit and margin, paid and outstanding, plus every sale."],
+      [D, "Purchase reports (by supplier, product, warehouse)", "By supplier, product (average, lowest and highest cost), warehouse, status and period: ordered against received, paid and not yet paid, plus every purchase."],
+      [D, "Financial reports: revenue, expenses, gross profit, debts, payments", "A profit and loss statement (net sales, cost of goods, gross profit, expenses by category, net profit) and money in and out by payment method; debts in the aging report."],
+      [D, "Filtering by date, warehouse, user, customer, supplier, product", "Any period (presets or custom dates) with the filters each report needs. Every report prints to PDF and saves to Excel, ahead of the Phase 2 plan."],
     ],
   },
   {
@@ -357,7 +357,7 @@ const html = `<!doctype html>
   <div class="subtitle">Feature Checklist</div>
   <div class="meta">Every item in the Full Proposed Feature Set (August 2026), ticked against what is built. Status as of ${AS_OF}, checked against the aimify-web and aimify_desktop repositories.</div>
 
-  <div class="callout"><b>Where things stand.</b> ${all[D]} of ${allTotal} proposed items are done and ${all[P]} are partly done. For the MVP, ${mvpT[D]} of ${mvpTotal} items are done and ${mvpT[P]} partly done. The account, subscription, payments, admin, inventory, customer, supplier and credit foundations are in place. Sales and purchases are on the server: a sale takes stock out of its warehouse and a received purchase adds it, both posting to the customer's or supplier's account. Expenses are on the server too, with categories, budgets, recurring expenses and receipts. The dashboard shows sales, gross and net profit, spending and debts for a chosen period with charts. The main MVP gap now is the sales, purchase and financial <b>reports</b>. Offline sync and two-factor sign-in were delivered ahead of plan.</div>
+  <div class="callout"><b>Where things stand.</b> ${all[D]} of ${allTotal} proposed items are done and ${all[P]} are partly done. For the MVP, ${mvpT[D]} of ${mvpTotal} items are done and ${mvpT[P]} partly done. The account, subscription, payments, admin, inventory, customer, supplier and credit foundations are in place. Sales and purchases are on the server: a sale takes stock out of its warehouse and a received purchase adds it, both posting to the customer's or supplier's account. Expenses are on the server too, with categories, budgets, recurring expenses and receipts. The dashboard shows sales, gross and net profit, spending and debts for a chosen period with charts, and the sales, purchase, profit and loss and stock reports cover any period with filters, PDF and Excel. Offline sync and two-factor sign-in were delivered ahead of plan.</div>
 
   <div class="legend"><span class="lg">${pill(D)} built and tested</span><span class="lg">${pill(P)} incomplete, or saved on one computer only</span><span class="lg">${pill(N)} nothing built yet</span></div>
 

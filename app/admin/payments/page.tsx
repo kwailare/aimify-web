@@ -1,4 +1,5 @@
-import { getPaymentsOverview } from "@/lib/admin-payments";
+import { AdminPaymentProviders } from "@/components/admin-payment-providers";
+import { getPaymentProviders, getPaymentsOverview } from "@/lib/admin-payments";
 import { formatDate, formatDateTime } from "@/lib/format-date";
 
 const naira = new Intl.NumberFormat("en-NG", {
@@ -16,7 +17,8 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 export default async function AdminPaymentsPage() {
-  const { rows, totals } = await getPaymentsOverview();
+  const [{ rows, totals }, providers] = await Promise.all([getPaymentsOverview(), getPaymentProviders()]);
+  const providerName = (id: string | null) => providers.find((p) => p.id === id)?.name ?? id ?? "";
 
   return (
     <div className="dash-stack dash-stack--wide">
@@ -24,9 +26,9 @@ export default async function AdminPaymentsPage() {
         <p className="dash-page-eyebrow">Payments</p>
         <h1 className="dash-page-title">Payments</h1>
         <p className="dash-page-subtitle">
-          Every payment attempt through Paystack: first payments, automatic
-          renewals, failures and refunds. Refunds are made in the Paystack
-          dashboard and show here once Paystack confirms them.
+          Every payment attempt: first payments, automatic renewals, upgrades,
+          failures and refunds. Refunds are made in the payment provider&apos;s
+          dashboard and show here once the provider confirms them.
         </p>
       </div>
 
@@ -39,7 +41,7 @@ export default async function AdminPaymentsPage() {
         <div className="dash-card">
           <p className="dash-card-label">Collected, all time</p>
           <p className="dash-card-value">{naira.format(totals.collectedAll)}</p>
-          <p className="dash-card-note">Before Paystack fees</p>
+          <p className="dash-card-note">Before provider fees</p>
         </div>
         <div className="dash-card">
           <p className="dash-card-label">Failed, 30 days</p>
@@ -49,8 +51,18 @@ export default async function AdminPaymentsPage() {
         <div className="dash-card">
           <p className="dash-card-label">Refunded, 30 days</p>
           <p className="dash-card-value">{naira.format(totals.refunded30)}</p>
-          <p className="dash-card-note">Marked when Paystack confirms</p>
+          <p className="dash-card-note">Marked when the provider confirms</p>
         </div>
+      </div>
+
+      <div className="dash-card">
+        <p className="dash-card-label">Payment provider</p>
+        <p className="dash-card-note" style={{ marginBottom: "1rem" }}>
+          The company new payments go through. Saved cards keep renewing with the
+          provider that saved them, so changing this never interrupts a
+          subscription.
+        </p>
+        <AdminPaymentProviders providers={providers} />
       </div>
 
       <div className="dash-card">
@@ -91,8 +103,9 @@ export default async function AdminPaymentsPage() {
                       </span>
                     </td>
                     <td>
-                      {row.kind === "renewal" ? "Renewal" : "Checkout"}
+                      {row.kind === "renewal" ? "Renewal" : row.kind === "upgrade" ? "Upgrade" : "Checkout"}
                       {row.channel ? ` · ${row.channel}` : ""}
+                      {row.provider ? <span className="admin-subline">{providerName(row.provider)}</span> : null}
                     </td>
                     <td suppressHydrationWarning>
                       {row.periodEnd ? formatDate(row.periodEnd) : "—"}

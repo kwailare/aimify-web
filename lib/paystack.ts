@@ -1,16 +1,12 @@
 import { createHmac, timingSafeEqual } from "crypto";
+import { PaymentProviderError } from "@/lib/payments/types";
+
+// Paystack's API. Billing uses it through the provider in
+// lib/payments/paystack.ts, not directly.
 
 const API_BASE = "https://api.paystack.co";
 const TIMEOUT_MS = 20000;
 
-export class PaystackError extends Error {
-  constructor(
-    message: string,
-    readonly kind: "not_configured" | "unsafe_key" | "network" | "rejected",
-  ) {
-    super(message);
-  }
-}
 
 export type PaystackAuthorization = {
   authorization_code?: string;
@@ -58,7 +54,7 @@ export function getSecretKey() {
   const key = process.env.PAYSTACK_SECRET_KEY?.trim();
 
   if (!key) {
-    throw new PaystackError(
+    throw new PaymentProviderError(
       "Payments aren't available right now.",
       "not_configured",
     );
@@ -69,7 +65,7 @@ export function getSecretKey() {
     (process.env.NODE_ENV === "production" && !process.env.VERCEL_ENV);
 
   if (isLiveKey(key) && !isProduction) {
-    throw new PaystackError(
+    throw new PaymentProviderError(
       "A live Paystack key is set outside production. Use a test key (sk_test_) here.",
       "unsafe_key",
     );
@@ -97,7 +93,7 @@ async function call<T>(
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });
   } catch {
-    throw new PaystackError(
+    throw new PaymentProviderError(
       "We couldn't reach Paystack. Please try again in a moment.",
       "network",
     );
@@ -110,7 +106,7 @@ async function call<T>(
   } | null;
 
   if (!json || json.status !== true || json.data === undefined) {
-    throw new PaystackError(
+    throw new PaymentProviderError(
       json?.message ?? "Paystack rejected the request.",
       "rejected",
     );

@@ -7,10 +7,10 @@ import {
   applyTransaction,
   getPaymentMethod,
   newReference,
-  readAuthorizationCode,
+  readCardToken,
   toKobo,
 } from "@/lib/billing";
-import { PaystackError, chargeAuthorization, initializeTransaction } from "@/lib/paystack";
+import { PaymentProviderError, activeProvider, getProvider } from "@/lib/payments";
 import { type LimitKey, type OrgPlan, getOrgPlan, getUsage, limitFor, toOrgPlan } from "@/lib/plans";
 import { SITE_URL } from "@/lib/site";
 
@@ -200,14 +200,22 @@ async function upgrade(
   input: { userId: string; email: string; checkout?: boolean },
   now: Date,
 ): Promise<PlanChangeResult> {
-  const method = input.checkout ? null : await getPaymentMethod(org.id);
+  // A saved card is charged by the provider that saved it; otherwise (or
+  // if that provider has no keys any more) the active one takes the payment.
+  const saved = input.checkout ? null : await getPaymentMethod(org.id);
+  const cardProvider = saved ? getProvider(saved.provider) : null;
+  const method = cardProvider?.isConfigured() ? saved : null;
+  const provider = method ? cardProvider! : await activeProvider();
+  if (!provider.isConfigured()) {
+    throw new PaymentProviderError("Payments aren't available right now.", "not_configured");
+  }
   const reference = newReference("checkout");
   await db.insert(payments).values({
     organizationId: org.id,
     amount: quote.amountDue,
     currency: "NGN",
     status: "pending",
-    provider: "paystack",
+    provider: provider.id,
     providerReference: reference,
     description: `Upgrade to ${quote.target.name} (${quote.daysLeft} day${quote.daysLeft === 1 ? "" : "s"} left in the period)`,
     kind: "upgrade",
@@ -220,14 +228,15 @@ async function upgrade(
 
   if (!method) {
     try {
-      const initialized = await initializeTransaction({
+      const started = await provider.startCheckout({
         email: input.email,
-        amountKobo: toKobo(quote.amountDue),
+        amountMinor: toKobo(quote.amountDue),
+        currency: "NGN",
         reference,
         callbackUrl: `${SITE_URL}/dashboard/billing/callback`,
         metadata,
       });
-      return { status: "checkout", url: initialized.authorization_url, reference };
+      return { status: "checkout", url: started.url, reference };
     } catch (error) {
       await markFailed(reference, error instanceof Error ? error.message : "initialize_failed");
       throw error;
@@ -236,10 +245,10 @@ async function upgrade(
 
   let reason = "declined";
   try {
-    const tx = await chargeAuthorization({
-      authorizationCode: readAuthorizationCode(method),
-      email: method.email,
-      amountKobo: toKobo(quote.amountDue),
+    const tx = await provider.chargeSavedCard({
+      card: { token: readCardToken(method), email: method.email },
+      amountMinor: toKobo(quote.amountDue),
+      currency: "NGN",
       reference,
       metadata,
     });
@@ -247,9 +256,9 @@ async function upgrade(
     if (applied.outcome === "activated" || applied.outcome === "already") {
       return { status: "upgraded", plan: quote.target.name, amount: quote.amountDue };
     }
-    reason = tx.gateway_response ?? tx.status;
+    reason = tx.message ?? tx.status;
   } catch (error) {
-    reason = error instanceof PaystackError ? error.message : "charge_failed";
+    reason = error instanceof PaymentProviderError ? error.message : "charge_failed";
   }
   await markFailed(reference, reason);
   return { status: "declined", reason };

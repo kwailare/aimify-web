@@ -8,7 +8,7 @@ import {
   applyTransaction,
   getPaymentMethod,
   newReference,
-  readAuthorizationCode,
+  readCardToken,
   toKobo,
 } from "@/lib/billing";
 import {
@@ -16,11 +16,7 @@ import {
   sendPaymentFailedEmail,
   sendRenewalReminderEmail,
 } from "@/lib/billing-emails";
-import {
-  PaystackError,
-  chargeAuthorization,
-  isPaystackConfigured,
-} from "@/lib/paystack";
+import { PaymentProviderError, anyProviderConfigured, getProvider } from "@/lib/payments";
 import { applyScheduledPlanChanges } from "@/lib/plan-change";
 import { getOrgPlan } from "@/lib/plans";
 import { notifySubscriptionChange } from "@/lib/subscription-notices";
@@ -51,6 +47,14 @@ async function attemptCharge(org: Org, now: Date) {
     return { charged: false as const, hadCard: Boolean(method), amount: plan.priceMonthly };
   }
 
+  // The card is charged by the provider that saved it, even if new payments
+  // now go through another. If that provider has no keys any more, the card
+  // can't be charged: they are asked to pay by hand, as without a card.
+  const provider = getProvider(method.provider);
+  if (!provider.isConfigured()) {
+    return { charged: false as const, hadCard: false, amount: plan.priceMonthly };
+  }
+
   const reference = newReference("renewal");
 
   await db.insert(payments).values({
@@ -58,7 +62,7 @@ async function attemptCharge(org: Org, now: Date) {
     amount: plan.priceMonthly,
     currency: "NGN",
     status: "pending",
-    provider: "paystack",
+    provider: provider.id,
     providerReference: reference,
     description: `${plan.name} subscription (renewal)`,
     kind: "renewal",
@@ -69,21 +73,21 @@ async function attemptCharge(org: Org, now: Date) {
   let reason: string | null = null;
 
   try {
-    const tx = await chargeAuthorization({
-      authorizationCode: readAuthorizationCode(method),
-      email: method.email,
-      amountKobo: toKobo(plan.priceMonthly),
+    const tx = await provider.chargeSavedCard({
+      card: { token: readCardToken(method), email: method.email },
+      amountMinor: toKobo(plan.priceMonthly),
+      currency: "NGN",
       reference,
       metadata: { organizationId: org.id, purpose: "renewal" },
     });
 
     const applied = await applyTransaction(tx, now);
     outcome = applied.outcome;
-    reason = tx.gateway_response ?? tx.status;
+    reason = tx.message ?? tx.status;
   } catch (error) {
     outcome = "error";
     reason =
-      error instanceof PaystackError ? error.message : "charge_failed";
+      error instanceof PaymentProviderError ? error.message : "charge_failed";
   }
 
   if (outcome === "activated") {
@@ -125,8 +129,8 @@ export async function runRenewals(now = new Date()): Promise<RenewalSummary> {
   // anything is charged at the old price.
   summary.planChanges = await applyScheduledPlanChanges(now);
 
-  if (!isPaystackConfigured()) {
-    summary.skipped = "Paystack is not configured.";
+  if (!anyProviderConfigured()) {
+    summary.skipped = "No payment provider is configured.";
     return summary;
   }
 

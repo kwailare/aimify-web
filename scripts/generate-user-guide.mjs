@@ -485,7 +485,7 @@ ${table(
   [
     ["Live payments", "Paystack is currently set up in test mode. Switching to real payments needs Aimify's live Paystack keys and business verification."],
     ["Plan lineup", "Today there is one plan, Full Access. Once the Aimify team adds more plans, customers can change plan by themselves."],
-    ["Other payment providers", "Being able to use another payment company (such as Flutterwave) as well as Paystack."],
+    ["Other payment providers", "Aimify is now built so another payment company (such as Flutterwave) can be added alongside Paystack, and the Aimify team can choose which one takes new payments. Adding a second company is the next step once its account is set up."],
     ["Returns", "Recording goods a customer brings back, or goods you send back to a supplier."],
     ["Stock transfers", "Moving goods from one warehouse to another in one step (today it is a stock out from one and a stock in to the other)."],
     ["SMS and WhatsApp", "Low-stock alerts and repayment reminders by SMS and WhatsApp, not just email."],

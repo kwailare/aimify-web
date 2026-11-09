@@ -182,7 +182,7 @@ const MODULES = [
     items: [
       [D, "Subscribe, renew, upgrade, downgrade, cancel", "All built. The Owner picks a plan on the billing page: an upgrade starts at once and charges the difference for the days left in the paid period; a downgrade starts when that period ends (no refunds) and can be undone until then. Being over a cheaper plan's limits deletes nothing; adding more is blocked until under."],
       [D, "Payment verification, history and receipts", "Paystack in TEST mode: live keys and business verification are still needed."],
-      [P, "Payment provider abstraction (swap or add Flutterwave later)", "Payments record their provider, but the logic is written directly against Paystack."],
+      [D, "Payment provider abstraction (swap or add Flutterwave later)", "Billing, renewals and plan changes go through one provider interface; Paystack is the first provider. The Aimify team picks the provider for new payments in the admin panel; saved cards keep renewing with the provider that saved them. Adding Flutterwave is one new provider file plus its keys."],
     ],
   },
   {

@@ -7,7 +7,7 @@ import { logAudit } from "@/lib/audit";
 import { getPaymentMethod, removePaymentMethod, startCheckout } from "@/lib/billing";
 import { PlanChangeError, changePlan, quotePlanChange } from "@/lib/plan-change";
 import { getOrgContext } from "@/lib/org";
-import { PaystackError } from "@/lib/paystack";
+import { PaymentProviderError } from "@/lib/payments";
 import { isRateLimited, recordLoginAttempt } from "@/lib/rate-limit";
 import { canManageTeam } from "@/lib/roles";
 
@@ -61,7 +61,7 @@ export async function startCheckoutAction() {
 
     return { url: checkout.url };
   } catch (error) {
-    if (error instanceof PaystackError) {
+    if (error instanceof PaymentProviderError) {
       return { error: error.message };
     }
 
@@ -177,7 +177,7 @@ export async function changePlanAction(planId: string, options: { checkout?: boo
     });
     return result.status === "scheduled" ? { ...result, at: result.at.toISOString() } : result;
   } catch (error) {
-    if (error instanceof PlanChangeError || error instanceof PaystackError) return { error: error.message };
+    if (error instanceof PlanChangeError || error instanceof PaymentProviderError) return { error: error.message };
     return { error: "We couldn't change the plan. Please try again." };
   }
 }

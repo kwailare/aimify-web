@@ -514,12 +514,24 @@ export const creditEntries = pgTable(
   ],
 );
 
+// Settings for the whole platform, set by the Aimify team (for example
+// payments.activeProvider: the provider new payments go through).
+export const platformSettings = pgTable("platform_settings", {
+  key: text().primaryKey(),
+  value: jsonb().notNull(),
+  updatedBy: uuid().references(() => users.id),
+  updatedAt: timestamp().defaultNow().notNull(),
+});
+
 export const paymentMethods = pgTable("payment_methods", {
   id: uuid().primaryKey().defaultRandom(),
   organizationId: uuid()
     .notNull()
     .unique()
     .references(() => organizations.id),
+  // The payment provider that saved the card (only it can charge it), and
+  // its reusable token for the card, sealed (Paystack: authorization code).
+  provider: text().notNull().default("paystack"),
   authorizationCode: text().notNull(),
   email: text().notNull(),
   customerCode: text(),

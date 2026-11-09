@@ -239,6 +239,13 @@
       "when": 1793632692000,
       "tag": "0033_premium_titania",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1794223803431,
+      "tag": "0034_cultured_black_panther",
+      "breakpoints": true
     }
   ]
 }

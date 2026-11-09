@@ -1,6 +1,7 @@
 import { and, desc, eq, gte, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { organizations, payments } from "@/db/schema";
+import { organizations, paymentMethods, payments } from "@/db/schema";
+import { activeProviderId, listProviders } from "@/lib/payments";
 
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -16,6 +17,7 @@ export async function getPaymentsOverview(now = new Date()) {
         currency: payments.currency,
         status: payments.status,
         kind: payments.kind,
+        provider: payments.provider,
         channel: payments.channel,
         reference: payments.providerReference,
         failureReason: payments.failureReason,
@@ -55,4 +57,24 @@ export async function getCollected30(now = new Date()) {
     );
 
   return row?.value ?? 0;
+}
+
+/** Each payment provider: its keys, whether it takes new payments, and how
+ * many saved cards it still renews. */
+export async function getPaymentProviders() {
+  const [active, cards] = await Promise.all([
+    activeProviderId(),
+    db
+      .select({ provider: paymentMethods.provider, count: sql<number>`count(*)::int` })
+      .from(paymentMethods)
+      .groupBy(paymentMethods.provider),
+  ]);
+  return listProviders().map((p) => ({
+    id: p.id,
+    name: p.name,
+    configured: p.isConfigured(),
+    mode: p.mode(),
+    active: p.id === active,
+    savedCards: cards.find((c) => c.provider === p.id)?.count ?? 0,
+  }));
 }

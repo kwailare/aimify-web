@@ -5,17 +5,15 @@ import { organizations, paymentMethods, payments, plans } from "@/db/schema";
 import { logAudit } from "@/lib/audit";
 import { sendReceiptEmail } from "@/lib/billing-emails";
 import { openSecret, sealSecret } from "@/lib/crypto-box";
-import {
-  PaystackError,
-  initializeTransaction,
-  type PaystackTransaction,
-} from "@/lib/paystack";
+import { PaymentProviderError, type PaymentResult, activeProvider } from "@/lib/payments";
 import { getOrgPlan, toOrgPlan } from "@/lib/plans";
 import { SITE_URL } from "@/lib/site";
 
 export const GRACE_DAYS = 3;
 export const MAX_RENEWAL_ATTEMPTS = 3;
 const DAY = 24 * 60 * 60 * 1000;
+// Saved card tokens are sealed under this purpose (named when Paystack was
+// the only provider; kept so existing cards still open).
 const SECRET_PURPOSE = "paystack-authorization";
 
 export function toKobo(amount: number) {
@@ -82,35 +80,27 @@ export async function getPaymentMethod(organizationId: string) {
   return row ?? null;
 }
 
-export function readAuthorizationCode(method: { authorizationCode: string }) {
+/** The saved card's token, unsealed, for its provider to charge. */
+export function readCardToken(method: { authorizationCode: string }) {
   return openSecret(SECRET_PURPOSE, method.authorizationCode);
 }
 
-async function savePaymentMethod(
-  organizationId: string,
-  tx: PaystackTransaction,
-  fallbackEmail: string,
-) {
-  const authorization = tx.authorization;
-
-  if (
-    !authorization?.authorization_code ||
-    authorization.reusable !== true ||
-    (authorization.channel ?? tx.channel) !== "card"
-  ) {
-    return;
-  }
+/** Keeps a card the customer paid with, for renewals, with its provider. */
+async function savePaymentMethod(organizationId: string, result: PaymentResult, fallbackEmail: string) {
+  const card = result.card;
+  if (!card) return;
 
   const values = {
     organizationId,
-    authorizationCode: sealSecret(SECRET_PURPOSE, authorization.authorization_code),
-    email: tx.customer?.email ?? fallbackEmail,
-    customerCode: tx.customer?.customer_code ?? null,
-    last4: authorization.last4 ?? null,
-    brand: authorization.brand ?? authorization.card_type ?? null,
-    expMonth: authorization.exp_month ?? null,
-    expYear: authorization.exp_year ?? null,
-    bank: authorization.bank ?? null,
+    provider: result.provider,
+    authorizationCode: sealSecret(SECRET_PURPOSE, card.token),
+    email: card.email || fallbackEmail,
+    customerCode: card.customerCode,
+    last4: card.last4,
+    brand: card.brand,
+    expMonth: card.expMonth,
+    expYear: card.expYear,
+    bank: card.bank,
     updatedAt: new Date(),
   };
 
@@ -150,9 +140,13 @@ export async function startCheckout(entry: {
   const plan = await planForNextPeriod(entry.organizationId);
 
   if (!(plan.priceMonthly > 0)) {
-    throw new PaystackError("This plan has no price set.", "rejected");
+    throw new PaymentProviderError("This plan has no price set.", "rejected");
   }
 
+  const provider = await activeProvider();
+  if (!provider.isConfigured()) {
+    throw new PaymentProviderError("Payments aren't available right now.", "not_configured");
+  }
   const reference = newReference("checkout");
 
   await db.insert(payments).values({
@@ -160,7 +154,7 @@ export async function startCheckout(entry: {
     amount: plan.priceMonthly,
     currency: "NGN",
     status: "pending",
-    provider: "paystack",
+    provider: provider.id,
     providerReference: reference,
     description: `${plan.name} subscription`,
     kind: "checkout",
@@ -169,9 +163,10 @@ export async function startCheckout(entry: {
   });
 
   try {
-    const initialized = await initializeTransaction({
+    const started = await provider.startCheckout({
       email: entry.email,
-      amountKobo: toKobo(plan.priceMonthly),
+      amountMinor: toKobo(plan.priceMonthly),
+      currency: "NGN",
       reference,
       callbackUrl: `${SITE_URL}/dashboard/billing/callback`,
       metadata: {
@@ -181,7 +176,7 @@ export async function startCheckout(entry: {
       },
     });
 
-    return { url: initialized.authorization_url, reference };
+    return { url: started.url, reference };
   } catch (error) {
     await db
       .update(payments)
@@ -199,8 +194,13 @@ export type ApplyOutcome =
   | { outcome: "activated"; organizationId: string; periodEnd: Date | null }
   | { outcome: "already" | "unknown" | "pending" | "failed" | "mismatch"; organizationId?: string };
 
+/**
+ * Records what a provider reported about a payment (from the checkout
+ * page, a webhook or a card charge), once: marks it paid or failed and, when
+ * paid, extends the subscription or applies the upgrade.
+ */
 export async function applyTransaction(
-  tx: PaystackTransaction,
+  tx: PaymentResult,
   now = new Date(),
 ): Promise<ApplyOutcome> {
   const [payment] = await db
@@ -209,19 +209,20 @@ export async function applyTransaction(
     .where(eq(payments.providerReference, tx.reference))
     .limit(1);
 
-  if (!payment) return { outcome: "unknown" };
+  // Only the provider the payment was started with can settle it.
+  if (!payment || (payment.provider && payment.provider !== tx.provider)) return { outcome: "unknown" };
 
   if (payment.status === "succeeded" || payment.status === "refunded") {
     return { outcome: "already", organizationId: payment.organizationId };
   }
 
   if (tx.status !== "success") {
-    if (["failed", "abandoned", "reversed"].includes(tx.status)) {
+    if (tx.status === "failed") {
       await db
         .update(payments)
         .set({
           status: "failed",
-          failureReason: (tx.gateway_response ?? tx.status).slice(0, 200),
+          failureReason: (tx.message ?? tx.status).slice(0, 200),
         })
         .where(and(eq(payments.id, payment.id), eq(payments.status, "pending")));
 
@@ -232,7 +233,7 @@ export async function applyTransaction(
   }
 
   if (
-    tx.amount !== toKobo(payment.amount) ||
+    tx.amountMinor !== toKobo(payment.amount) ||
     tx.currency !== payment.currency
   ) {
     await db
@@ -248,7 +249,7 @@ export async function applyTransaction(
       newValue: {
         reference: tx.reference,
         expected: toKobo(payment.amount),
-        received: tx.amount,
+        received: tx.amountMinor,
       },
     });
 
@@ -259,8 +260,8 @@ export async function applyTransaction(
     .update(payments)
     .set({
       status: "succeeded",
-      paidAt: tx.paid_at ? new Date(tx.paid_at) : now,
-      channel: tx.channel ?? tx.authorization?.channel ?? null,
+      paidAt: tx.paidAt ?? now,
+      channel: tx.channel,
       failureReason: null,
     })
     .where(
@@ -286,7 +287,7 @@ export async function applyTransaction(
   await savePaymentMethod(
     org.id,
     tx,
-    tx.customer?.email ?? "",
+    tx.email ?? "",
   );
 
   if (org.subscriptionStatus === "suspended") {

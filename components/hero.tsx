@@ -1,4 +1,4 @@
-import { ArrowUpRight, TriangleAlert } from "lucide-react";
+import { ArrowUpRight, Download, TriangleAlert } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -21,6 +21,9 @@ const chartStats = [
   { value: "3", label: "Low-stock alerts" },
   { value: "₦25.4M", label: "Inventory value" },
 ];
+
+// The desktop installer on Vercel Blob (scripts/upload-desktop-installer.mjs).
+const windowsDownload = process.env.NEXT_PUBLIC_DOWNLOAD_URL_WINDOWS;
 
 const CHART_BASE_Y = 104;
 const CHART_MAX_H = 80;
@@ -61,10 +64,22 @@ export function Hero() {
               Get started
               <ArrowUpRight size={17} aria-hidden="true" />
             </Link>
-            <a className="hero-secondary" href="#method">
-              See how it works
-            </a>
+            {windowsDownload ? (
+              <a className="hero-secondary gap-2" href={windowsDownload} download>
+                <Download size={16} aria-hidden="true" />
+                Download for Windows
+              </a>
+            ) : (
+              <a className="hero-secondary" href="#method">
+                See how it works
+              </a>
+            )}
           </div>
+          {windowsDownload && (
+            <p className="body-copy mt-3 text-xs">
+              The desktop app for Windows 10 or later. Sign up first, then sign in with the same account.
+            </p>
+          )}
         </div>
         <div className="hero-visual" aria-hidden="true">
           <div className="hero-chart-card">

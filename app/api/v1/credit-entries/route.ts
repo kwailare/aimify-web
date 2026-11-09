@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { and, desc, eq, gte, inArray, lt, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { db } from "@/db";
@@ -9,6 +9,7 @@ import { balanceOf, isEntryKind, isPartyType, roundMoney } from "@/lib/credit";
 import { callDbFunction } from "@/lib/db-functions";
 import { PAYMENT_METHODS } from "@/lib/sales";
 import { isUuid } from "@/lib/validation";
+import { notifyReceipt } from "@/lib/whatsapp/notify";
 
 // What each payment or credit settled, oldest first: the sale or purchase
 // reference (or the entry's note for a debt that isn't one) and the amount.
@@ -301,6 +302,17 @@ export async function POST(request: Request) {
       ...(entry.receiptNumber ? { receiptNumber: entry.receiptNumber } : {}),
     },
   });
+
+  // A receipt on WhatsApp for a customer's payment, if the business sends
+  // them and the customer agreed.
+  if (partyType === "customer" && kind === "payment") {
+    after(() => notifyReceipt(context.organizationId, {
+        customerId: partyId,
+        amount: Math.abs(entry.amount),
+        reference: entry.receiptNumber ?? "payment on your account",
+        recordId: entry.id,
+      }).catch((error) => console.error("whatsapp", error)));
+  }
 
   return NextResponse.json(
     { entry: shapeEntry(entry, allocations), balanceOwed: result.balanceOwed },

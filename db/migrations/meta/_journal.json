@@ -246,6 +246,13 @@
       "when": 1794223803431,
       "tag": "0034_cultured_black_panther",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1794231595822,
+      "tag": "0035_flippant_mercury",
+      "breakpoints": true
     }
   ]
 }

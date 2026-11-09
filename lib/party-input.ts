@@ -14,6 +14,7 @@ export type PartyFields = {
   creditLimit?: number;
   customerTypeId?: string | null;
   paymentTermsDays?: number;
+  whatsappOptIn?: boolean;
   status?: string;
 };
 
@@ -99,6 +100,13 @@ export function parsePartyFields(
       return { error: "paymentTermsDays must be a whole number of days from 0 to 365." };
     }
     data.paymentTermsDays = value;
+  }
+
+  if ("whatsappOptIn" in input) {
+    if (typeof input.whatsappOptIn !== "boolean") {
+      return { error: "whatsappOptIn must be true or false." };
+    }
+    data.whatsappOptIn = input.whatsappOptIn;
   }
 
   if ("status" in input) {

@@ -39,6 +39,9 @@ export const organizations = pgTable("organizations", {
   taxName: text(),
   taxRate: numeric({ mode: "number" }).notNull().default(0),
   timezone: text().notNull().default("Africa/Lagos"),
+  // Which automatic WhatsApp messages this business sends (see
+  // lib/whatsapp/settings.ts); all off until the Owner turns them on.
+  whatsappSettings: jsonb().notNull().default({}),
   dateFormat: text().notNull().default("DD/MM/YYYY"),
   subscriptionStatus: text().notNull().default("pending"),
   trialEndsAt: timestamp(),
@@ -66,6 +69,8 @@ export const users = pgTable("users", {
   name: text().notNull(),
   phone: text(),
   emailVerifiedAt: timestamp(),
+  // Wants stock alerts on WhatsApp (to their phone), as well as by email.
+  whatsappAlerts: boolean().notNull().default(false),
   sessionsValidAfter: timestamp(),
   twoFactorSecret: text(),
   twoFactorEnabledAt: timestamp(),
@@ -407,6 +412,8 @@ export const suppliers = pgTable(
     notes: text(),
     // Days after a purchase reaches their account that it is due.
     paymentTermsDays: integer().notNull().default(30),
+    // Agreed to messages the business starts on WhatsApp (purchase orders).
+    whatsappOptIn: boolean().notNull().default(false),
     // Authoritative, atomically updated running balance (what we owe them).
     // Not derived from summing credit_entries at read time, so a guarded
     // UPDATE on this column can never be raced the way a read-then-insert
@@ -454,6 +461,9 @@ export const customers = pgTable(
     creditLimit: numeric({ mode: "number" }).notNull().default(0),
     // Days after a sale that it is due.
     paymentTermsDays: integer().notNull().default(30),
+    // Agreed to messages the business starts on WhatsApp (invoices,
+    // receipts, reminders). Share buttons work without it.
+    whatsappOptIn: boolean().notNull().default(false),
     // Authoritative, atomically updated running balance (what they owe us).
     // Not derived from summing credit_entries at read time, so a guarded
     // UPDATE on this column can never be raced the way a read-then-insert
@@ -880,5 +890,43 @@ export const expenses = pgTable(
     unique().on(table.organizationId, table.number),
     unique().on(table.organizationId, table.clientRef),
     index("expenses_org_date_idx").on(table.organizationId, table.expenseDate),
+  ],
+);
+
+// Every WhatsApp message Aimify sent (or tried to) for a business: who to,
+// what kind, how it went. dedupeKey stops the same message going twice (a
+// sale's invoice, a day's reminder).
+export const whatsappMessages = pgTable(
+  "whatsapp_messages",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    organizationId: uuid()
+      .notNull()
+      .references(() => organizations.id),
+    // invoice | receipt | reminder | purchase_order | stock_alert
+    kind: text().notNull(),
+    toPhone: text().notNull(),
+    // Who it went to: a customer, a supplier, or a team member.
+    partyType: text(),
+    partyId: uuid(),
+    userId: uuid().references(() => users.id),
+    // The sale, payment or purchase it is about.
+    recordId: uuid(),
+    dedupeKey: text().notNull(),
+    provider: text().notNull(),
+    template: text().notNull(),
+    // The message as the recipient reads it.
+    body: text().notNull(),
+    // sending | sent | delivered | read | failed | recorded (test mode)
+    status: text().notNull().default("sending"),
+    providerMessageId: text(),
+    error: text(),
+    createdAt: timestamp().defaultNow().notNull(),
+    updatedAt: timestamp().defaultNow().notNull(),
+  },
+  (table) => [
+    unique().on(table.organizationId, table.dedupeKey),
+    index("whatsapp_messages_org_created_idx").on(table.organizationId, table.createdAt),
+    index("whatsapp_messages_provider_id_idx").on(table.providerMessageId),
   ],
 );

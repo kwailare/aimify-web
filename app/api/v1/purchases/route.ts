@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { denyIfForbidden, guardApi } from "@/lib/api-context";
 import { logAudit } from "@/lib/audit";
 import { roundMoney } from "@/lib/credit";
@@ -14,6 +14,7 @@ import {
   parsePurchaseInput,
 } from "@/lib/purchases";
 import { isUuid } from "@/lib/validation";
+import { notifyPurchaseOrder } from "@/lib/whatsapp/notify";
 
 const MAX_LIMIT = 200;
 
@@ -181,6 +182,10 @@ export async function POST(request: Request) {
       );
     }
   }
+
+  // The order on WhatsApp, if it is placed (not received at once), the
+  // business sends them and the supplier agreed.
+  after(() => notifyPurchaseOrder(context.organizationId, id).catch((error) => console.error("whatsapp", error)));
 
   return NextResponse.json({ purchase: await getPurchase(context.organizationId, id) }, { status: 201 });
 }

@@ -4,6 +4,7 @@ import { logAudit } from "@/lib/audit";
 import { roundMoney } from "@/lib/credit";
 import { SALE_STATUSES, createSale, getSale, listSales, parseSaleInput, saleTotals, sellingPrices } from "@/lib/sales";
 import { detectStockAlert, notifyStockAlert } from "@/lib/stock-alerts";
+import { notifyInvoice } from "@/lib/whatsapp/notify";
 import { isUuid } from "@/lib/validation";
 
 const MAX_LIMIT = 200;
@@ -161,6 +162,9 @@ export async function POST(request: Request) {
       }
     });
   }
+
+  // The invoice on WhatsApp, if the business sends them and the customer agreed.
+  after(() => notifyInvoice(context.organizationId, saleId).catch((error) => console.error("whatsapp", error)));
 
   return NextResponse.json(
     {

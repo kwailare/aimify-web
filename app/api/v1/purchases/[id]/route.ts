@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { guardApi } from "@/lib/api-context";
 import { logAudit } from "@/lib/audit";
 import {
@@ -9,6 +9,7 @@ import {
   rewritePurchase,
 } from "@/lib/purchases";
 import { isUuid } from "@/lib/validation";
+import { notifyPurchaseOrder } from "@/lib/whatsapp/notify";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -127,6 +128,10 @@ export async function PATCH(request: Request, { params }: Params) {
     previousValue: { status: before.status, total: before.total, lines: before.lines.length },
     newValue: { status: data.status ?? before.status, total, lines: lines.length, changed },
   });
+
+  if (before.status === "draft" && data.status === "pending") {
+    after(() => notifyPurchaseOrder(context.organizationId, id).catch((error) => console.error("whatsapp", error)));
+  }
 
   return NextResponse.json({ purchase: await getPurchase(context.organizationId, id) });
 }

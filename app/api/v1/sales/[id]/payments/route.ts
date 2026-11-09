@@ -1,9 +1,10 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { sql } from "drizzle-orm";
 import { denyIfForbidden, guardApi } from "@/lib/api-context";
 import { logAudit } from "@/lib/audit";
 import { PAYMENT_METHODS, callSaleFunction, getSale, isPaymentMethod } from "@/lib/sales";
 import { isUuid } from "@/lib/validation";
+import { notifyReceipt } from "@/lib/whatsapp/notify";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -64,9 +65,21 @@ export async function POST(request: Request, { params }: Params) {
     });
   }
 
+  const sale = await getSale(context.organizationId, String(outcome.result.saleId));
+  // A receipt on WhatsApp, if the business sends them and the customer agreed.
+  const customerId = sale?.customerId;
+  if (!outcome.result.duplicate && sale && customerId && outcome.result.paymentId) {
+    after(() => notifyReceipt(context.organizationId, {
+        customerId,
+        amount,
+        reference: `payment on ${sale.reference}`,
+        recordId: String(outcome.result.paymentId),
+      }).catch((error) => console.error("whatsapp", error)));
+  }
+
   return NextResponse.json(
     {
-      sale: await getSale(context.organizationId, String(outcome.result.saleId)),
+      sale,
       duplicate: outcome.result.duplicate === true,
     },
     { status: outcome.result.duplicate ? 200 : 201 },

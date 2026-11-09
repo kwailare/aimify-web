@@ -165,7 +165,7 @@ ${table(
 ${list([
   "You can't take out more than a warehouse holds. Even if two people sell the last bag at the same moment, only one sale goes through.",
   "A warehouse can only be switched off (disabled) when it is empty.",
-  "Your plan decides how many warehouses can be active at once (see chapter 17).",
+  "Your plan decides how many warehouses can be active at once (see chapter 18).",
 ])}
 <h3>Running low</h3>
 <p>When a product falls to its minimum level, or runs out completely, Aimify shows it on the dashboard and in the Inventory screen, and emails the business so someone can reorder.</p>
@@ -378,6 +378,37 @@ ${table(
 
 // ---------------------------------------------------------------- 15
 chapter(
+  "WhatsApp",
+  `
+<p>Aimify can send your customers and suppliers their invoices, receipts, reminders and orders on WhatsApp, in two ways.</p>
+<h3>1. "Send on WhatsApp" buttons (works now)</h3>
+<p>In the desktop app, these buttons open WhatsApp on your computer with the message already written, to the right person's number. You read it and press Send yourself, from your own WhatsApp.</p>
+${table(
+  ["Where", "What it sends"],
+  [
+    ["A sale", "The invoice: the goods, total, what was paid and what is still due."],
+    ["A payment on a sale, or on a customer's account", "A receipt, with their new balance."],
+    ["A customer's page, and Who to chase", "A polite reminder of what is overdue."],
+    ["A purchase (while still to be delivered)", "The order, for the supplier to confirm."],
+  ],
+)}
+<h3>2. Automatic messages</h3>
+<p>Once Aimify's WhatsApp Business account is connected, Aimify can send these by itself, from Aimify's WhatsApp number, naming your business. On the website's <b>WhatsApp</b> page the Owner or an Administrator chooses which ones your business sends:</p>
+${list([
+  "<b>Invoices</b> after a sale, and <b>receipts</b> after a payment.",
+  "<b>Reminders</b> of overdue amounts, at most every 3, 7, 14 or 30 days.",
+  "<b>Purchase orders</b> to suppliers when an order is placed.",
+  "<b>Stock alerts</b> to team members who turn them on for themselves.",
+])}
+${note(
+  "Only with their agreement",
+  "<p>Automatic messages only go to customers and suppliers ticked <b>WhatsApp OK</b> in the desktop app (they agreed to get them). Tick it when you add or edit them. The same message is never sent twice, and the WhatsApp page lists every message sent and whether it was delivered and read.</p>",
+)}
+`,
+);
+
+// ---------------------------------------------------------------- 16
+chapter(
   "Working without internet",
   `
 <p>Internet connections drop. The desktop app is built for that.</p>
@@ -488,7 +519,8 @@ ${table(
     ["Other payment providers", "Aimify is now built so another payment company (such as Flutterwave) can be added alongside Paystack, and the Aimify team can choose which one takes new payments. Adding a second company is the next step once its account is set up."],
     ["Returns", "Recording goods a customer brings back, or goods you send back to a supplier."],
     ["Stock transfers", "Moving goods from one warehouse to another in one step (today it is a stock out from one and a stock in to the other)."],
-    ["SMS and WhatsApp", "Low-stock alerts and repayment reminders by SMS and WhatsApp, not just email."],
+    ["Automatic WhatsApp messages", "Built, and switched on once Aimify's WhatsApp Business account is approved by Meta. Until then, use the Send on WhatsApp buttons (chapter 15)."],
+    ["SMS", "Alerts and reminders by text message, for customers without WhatsApp."],
     ["Phone number check", "Confirming the Owner's phone number when they sign up."],
     ["Mobile app", "Aimify on Android and iPhone."],
   ],
@@ -620,7 +652,7 @@ const html = `<!doctype html><html><head><meta charset="utf-8"><title>Aimify, ex
   <p class="eyebrow">Inside</p>
   <h2>Contents</h2>
   <ol>${contents}</ol>
-  <div class="howto"><b>How to read this guide.</b> Chapters 1 to 4 explain what Aimify is and how to start. Chapters 5 to 15 follow the everyday work in the order a business usually meets it. Chapters 16 to 19 cover safety, payment and what is coming. Unfamiliar words are explained in chapter 20.</div>
+  <div class="howto"><b>How to read this guide.</b> Chapters 1 to 4 explain what Aimify is and how to start. Chapters 5 to 16 follow the everyday work in the order a business usually meets it. Chapters 17 to 20 cover safety, payment and what is coming. Unfamiliar words are explained in chapter 21.</div>
 </div>
 ${body}
 </body></html>`;

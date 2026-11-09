@@ -164,7 +164,7 @@ const MODULES = [
     items: [
       [P, "Low/out of stock, subscription expiring/expired, payment success/failure, customer payment, purchase received, transfer completed", "Stock, trial, subscription and payment emails are built. Customer payment, purchase received and transfer emails aren't."],
       [D, "Email notifications (MVP)", "Through Resend, with a daily job for reminders and renewals."],
-      [N, "SMS, WhatsApp and push notifications", ""],
+      [P, "SMS, WhatsApp and push notifications", "WhatsApp is built: invoices, receipts, overdue reminders, purchase orders and stock alerts, automatic once Aimify's WhatsApp Business account is set up (docs/whatsapp-setup.md), and share buttons in the desktop app now. SMS and push aren't."],
     ],
   },
   {
@@ -228,7 +228,7 @@ const MODULES = [
 ];
 
 const DIFFERENTIATORS = [
-  [N, "WhatsApp-native workflows", "MVP / near-term", ""],
+  [D, "WhatsApp-native workflows", "MVP / near-term", "Send on WhatsApp for invoices, receipts, reminders and purchase orders in the desktop app; automatic messages (with each customer's consent, chosen per business) start when Aimify's WhatsApp Business account is connected."],
   [N, "Customer credit risk scoring", "MVP / near-term", "The customer and credit data it needs now exists."],
   [N, "Photo-evidence stock adjustments", "MVP / near-term", "Image storage is in place; stock movements don't take a photo yet."],
   [D, "Offline-first with sync", "Phase 2", "Built in the desktop app."],
@@ -238,6 +238,7 @@ const DIFFERENTIATORS = [
 ];
 
 const NEXT_STEPS = [
+  ["Connect WhatsApp Business", "Meta business verification, a number and five message templates (docs/whatsapp-setup.md); automatic messages then start."],
   ["Set up the plan lineup", "Create and price the plans on the admin Plans page; customers can then change plan themselves."],
   ["Go live with Paystack", "Live keys and business verification."],
 ];

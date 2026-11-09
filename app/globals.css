@@ -4580,3 +4580,15 @@ select optgroup {
 .dark .plan-option.is-current {
   border-color: var(--aimify-gold);
 }
+
+/* WhatsApp page */
+.whatsapp-switches {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.whatsapp-switches .auth-checkbox-row span {
+  display: grid;
+  gap: 0.15rem;
+}

@@ -2,6 +2,7 @@ import { and, asc, eq, gt, lte, ne } from "drizzle-orm";
 import { db } from "@/db";
 import { memberships, productStock, products, users, warehouses } from "@/db/schema";
 import { sendEmail } from "@/lib/email";
+import { notifyStockAlertOnWhatsApp } from "@/lib/whatsapp/notify";
 
 export type StockAlert = "low_stock" | "out_of_stock";
 
@@ -60,6 +61,8 @@ export async function notifyStockAlert(
   alert: StockAlert,
   product: { productId: string; name: string; sku: string; currentStock: number; minStock: number },
 ) {
+  await notifyStockAlertOnWhatsApp(organizationId, alert, product).catch((error) => console.error("whatsapp", error));
+
   const recipients = await db
     .select({ email: users.email })
     .from(memberships)

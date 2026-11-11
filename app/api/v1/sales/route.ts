@@ -1,4 +1,7 @@
 import { NextResponse, after } from "next/server";
+import { eq } from "drizzle-orm";
+import { db } from "@/db";
+import { sales } from "@/db/schema";
 import { denyIfForbidden, guardApi } from "@/lib/api-context";
 import { logAudit } from "@/lib/audit";
 import { roundMoney } from "@/lib/credit";
@@ -161,6 +164,11 @@ export async function POST(request: Request) {
         });
       }
     });
+  }
+
+  // A walk-in's WhatsApp number is kept on the sale (for its invoice).
+  if (input.customerPhone && !input.customerId) {
+    await db.update(sales).set({ customerPhone: input.customerPhone }).where(eq(sales.id, saleId));
   }
 
   // The invoice on WhatsApp, if the business sends them and the customer agreed.

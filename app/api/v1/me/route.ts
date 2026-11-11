@@ -7,6 +7,8 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { plans } from "@/db/schema";
 import { getOrgPlan, getUsage } from "@/lib/plans";
+import { whatsappProvider } from "@/lib/whatsapp";
+import { readWhatsAppSettings } from "@/lib/whatsapp/settings";
 
 export async function GET(request: Request) {
   const userId = await verifyApiToken(request);
@@ -62,6 +64,15 @@ export async function GET(request: Request) {
           subscriptionStatus: context.membership.organization.subscriptionStatus,
           trialEndsAt: context.membership.organization.trialEndsAt,
           setupCompletedAt: context.membership.organization.setupCompletedAt,
+        }
+      : null,
+    // Automatic WhatsApp messages: connected only with the real provider
+    // (test mode records, it doesn't send), and which ones the business
+    // turned on. The app opens WhatsApp itself when they aren't sent.
+    whatsapp: context.membership
+      ? {
+          connected: whatsappProvider()?.id === "meta",
+          ...readWhatsAppSettings(context.membership.organization.whatsappSettings),
         }
       : null,
     role: context.membership?.role ?? null,

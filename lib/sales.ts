@@ -26,6 +26,8 @@ export type SaleInput = {
   paymentMethod: PaymentMethod;
   allowOverLimit: boolean;
   clientRef: string | null;
+  // A walk-in's WhatsApp number, for their invoice.
+  customerPhone: string | null;
 };
 
 function money(value: unknown) {
@@ -97,6 +99,15 @@ export function parseSaleInput(body: unknown): { data: SaleInput } | { error: st
     lines.push({ productId: line.productId as string, quantity: line.quantity as number, unitPrice });
   }
 
+  let customerPhone: string | null = null;
+  if (input.customerPhone !== undefined && input.customerPhone !== null) {
+    if (typeof input.customerPhone !== "string" || input.customerPhone.trim().length > 40) {
+      return { error: "customerPhone must be a phone number of at most 40 characters." };
+    }
+    if (customerId) return { error: "customerPhone is only for walk-in sales; a customer's phone is on the customer." };
+    customerPhone = input.customerPhone.trim() || null;
+  }
+
   const clientRef = typeof input.clientRef === "string" ? input.clientRef : null;
   if (clientRef !== null && (clientRef.length === 0 || clientRef.length > 100)) {
     return { error: "clientRef must be 1 to 100 characters." };
@@ -115,6 +126,7 @@ export function parseSaleInput(body: unknown): { data: SaleInput } | { error: st
       paymentMethod,
       allowOverLimit: input.allowOverLimit === true,
       clientRef,
+      customerPhone,
     },
   };
 }
@@ -296,6 +308,7 @@ function shapeSale(
     overLimit: row.overLimitApprovedBy !== null,
     voidedAt: row.voidedAt,
     voidReason: row.voidReason,
+    customerPhone: row.customerPhone,
     createdBy: row.createdBy,
     createdByName: row.createdByName,
     createdAt: row.createdAt,

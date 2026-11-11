@@ -208,6 +208,9 @@ export async function createParty(request: Request, type: PartyType) {
   // Status is changed by archiving, not by create.
   const values = { ...data, name: data.name };
   delete values.status;
+  // Someone with a phone number gets the business's WhatsApp messages
+  // unless they were unticked.
+  if (data.whatsappOptIn === undefined) values.whatsappOptIn = Boolean(data.phone);
 
   if (data.customerTypeId) {
     const customerType = await findCustomerType(context.organizationId, data.customerTypeId);
@@ -313,9 +316,14 @@ export async function updateParty(request: Request, type: PartyType, id: string)
 
   if (!before) return notFound(type);
 
+  // A phone number added where there was none ticks "WhatsApp OK", unless
+  // the request says otherwise.
+  const changes = { ...data };
+  if (data.whatsappOptIn === undefined && data.phone && !(before as Row).phone) changes.whatsappOptIn = true;
+
   const [updated] = await db
     .update(config.table)
-    .set({ ...data, updatedAt: new Date() })
+    .set({ ...changes, updatedAt: new Date() })
     .where(
       and(
         eq(config.table.id, id),
@@ -331,7 +339,7 @@ export async function updateParty(request: Request, type: PartyType, id: string)
   const beforeRow = before as Row;
   const updatedRow = updated as Row;
 
-  for (const key of Object.keys(data)) {
+  for (const key of Object.keys(changes)) {
     if (beforeRow[key] !== updatedRow[key]) {
       previousValue[key] = beforeRow[key];
       newValue[key] = updatedRow[key];

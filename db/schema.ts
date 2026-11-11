@@ -709,6 +709,8 @@ export const sales = pgTable(
     // Sale date plus the customer's payment terms; null for walk-ins.
     dueDate: timestamp(),
     notes: text(),
+    // A walk-in's WhatsApp number, given for this sale (for its invoice).
+    customerPhone: text(),
     subtotal: numeric({ mode: "number" }).notNull().default(0),
     discount: numeric({ mode: "number" }).notNull().default(0),
     tax: numeric({ mode: "number" }).notNull().default(0),

@@ -115,21 +115,25 @@ export async function notifyInvoice(organizationId: string, saleId: string) {
       name: customers.name,
       phone: customers.phone,
       optIn: customers.whatsappOptIn,
+      walkInPhone: sales.customerPhone,
     })
     .from(sales)
-    .innerJoin(customers, eq(customers.id, sales.customerId))
+    .leftJoin(customers, eq(customers.id, sales.customerId))
     .where(and(eq(sales.id, saleId), eq(sales.organizationId, organizationId)))
     .limit(1);
-  if (!row?.optIn) return "skipped" as const;
+  if (!row) return "skipped" as const;
+  // A customer who agreed, or a walk-in who gave their number for it.
+  const walkIn = row.customerId === null;
+  if (walkIn ? !row.walkInPhone : !row.optIn) return "skipped" as const;
   return send({
     organizationId,
     kind: "invoice",
-    phone: row.phone,
-    partyType: "customer",
-    partyId: row.customerId,
+    phone: walkIn ? row.walkInPhone : row.phone,
+    partyType: walkIn ? undefined : "customer",
+    partyId: row.customerId ?? undefined,
     recordId: saleId,
     dedupeKey: `invoice:${saleId}`,
-    message: invoiceMessage({ customer: row.name, business: biz.name, reference: row.reference, total: row.total, paid: row.paid }),
+    message: invoiceMessage({ customer: row.name ?? "there", business: biz.name, reference: row.reference, total: row.total, paid: row.paid }),
   });
 }
 

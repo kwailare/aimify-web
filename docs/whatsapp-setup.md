@@ -34,17 +34,18 @@ names and bodies (the `{{n}}` are filled in by Aimify, in this order):
 
 | Name | Body |
 |---|---|
-| `aimify_invoice` | Hello {{1}}, thank you for buying from {{2}}. Invoice {{3}}: total {{4}}, paid {{5}}, balance {{6}}. |
+| `aimify_invoice` | Hello {{1}}, thank you for buying from {{2}}. Invoice {{3}}: total {{4}}, paid {{5}}, balance {{6}}. Thank you for your business. |
 | `aimify_receipt` | Hello {{1}}, {{2}} received your payment of {{3}} ({{4}}). Your balance is now {{5}}. Thank you. |
 | `aimify_payment_reminder` | Hello {{1}}, this is a friendly reminder from {{2}}: {{3}} is overdue on your account (due since {{4}}). Please get in touch to arrange payment. Thank you. |
 | `aimify_purchase_order` | Hello {{1}}, {{2}} would like to order (purchase order {{3}}): {{4}}. Total {{5}}. Please confirm. Thank you. |
-| `aimify_stock_alert` | {{1}}: {{2}} is {{3}} ({{4}} left, minimum {{5}}). Open Aimify to reorder. |
+| `aimify_stock_alert` | Stock alert from {{1}}: {{2}} is {{3}} ({{4}} left, minimum {{5}}). Open Aimify to reorder. |
 
 Sample values for Meta's review: *Ada Stores*, *Obi Distribution Ltd*,
 *INV-0001*, *₦140,000*, *₦40,000*, *₦100,000*, *RCPT-0001*, *5 Nov 2026*,
 *30 bag Rice 50kg*, *Rice 50kg (RICE-50)*, *running low*, *4*, *5*.
 
-If a template's wording is changed, change it in
+Meta refuses a template that begins or ends with a {{n}}, so keep words before
+the first and after the last. If a template's wording is changed, change it in
 `lib/whatsapp/messages.ts` too: the parameters must stay in the same order.
 
 ## 3. Aimify's side (Vercel)

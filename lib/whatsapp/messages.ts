@@ -1,7 +1,8 @@
 // The automatic WhatsApp messages: each is an approved template (its exact
 // text is in docs/whatsapp-setup.md) filled with these parameters, in
 // order. `text` is the same message as the recipient reads it, kept in the
-// message log.
+// message log. Meta refuses a template that begins or ends with a parameter,
+// so each starts and ends with words.
 
 export type BuiltMessage = { template: string; params: string[]; text: string };
 
@@ -18,7 +19,7 @@ function build(template: string, wording: (p: string[]) => string, params: strin
 export function invoiceMessage(m: { customer: string; business: string; reference: string; total: number; paid: number }) {
   return build(
     "aimify_invoice",
-    (p) => `Hello ${p[0]}, thank you for buying from ${p[1]}. Invoice ${p[2]}: total ${p[3]}, paid ${p[4]}, balance ${p[5]}.`,
+    (p) => `Hello ${p[0]}, thank you for buying from ${p[1]}. Invoice ${p[2]}: total ${p[3]}, paid ${p[4]}, balance ${p[5]}. Thank you for your business.`,
     [m.customer, m.business, m.reference, naira(m.total), naira(m.paid), naira(Math.max(m.total - m.paid, 0))],
   );
 }
@@ -66,7 +67,7 @@ export function stockAlertMessage(m: {
 }) {
   return build(
     "aimify_stock_alert",
-    (p) => `${p[0]}: ${p[1]} is ${p[2]} (${p[3]} left, minimum ${p[4]}). Open Aimify to reorder.`,
+    (p) => `Stock alert from ${p[0]}: ${p[1]} is ${p[2]} (${p[3]} left, minimum ${p[4]}). Open Aimify to reorder.`,
     [m.business, `${m.product} (${m.sku})`, m.out ? "out of stock" : "running low", String(m.left), String(m.minimum)],
   );
 }

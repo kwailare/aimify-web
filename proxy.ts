@@ -7,20 +7,33 @@ function launchGateIsOn() {
   return process.env.LAUNCH_GATE_ENABLED === "true";
 }
 
+// Keys that open the full site while it's gated: the team's own, plus one
+// per outside tester (comma-separated in LAUNCH_GATE_TESTER_KEYS), so a
+// tester's access ends as soon as their key is taken out of the list.
+function previewKeys() {
+  const testerKeys = (process.env.LAUNCH_GATE_TESTER_KEYS ?? "")
+    .split(",")
+    .map((key) => key.trim())
+    .filter((key) => key.length >= 16);
+  const teamKey = process.env.LAUNCH_GATE_BYPASS_SECRET;
+
+  return teamKey ? [teamKey, ...testerKeys] : testerKeys;
+}
+
 export default auth((req) => {
   const { pathname, searchParams } = req.nextUrl;
 
   if (launchGateIsOn() && pathname !== "/coming-soon") {
-    const bypassSecret = process.env.LAUNCH_GATE_BYPASS_SECRET;
+    const keys = previewKeys();
     const previewParam = searchParams.get("preview");
-    const hasValidCookie =
-      !!bypassSecret && req.cookies.get(PREVIEW_COOKIE)?.value === bypassSecret;
+    const cookieKey = req.cookies.get(PREVIEW_COOKIE)?.value;
+    const hasValidCookie = !!cookieKey && keys.includes(cookieKey);
 
-    if (bypassSecret && previewParam === bypassSecret) {
+    if (previewParam && keys.includes(previewParam)) {
       const cleanUrl = new URL(req.nextUrl);
       cleanUrl.searchParams.delete("preview");
       const res = NextResponse.redirect(cleanUrl);
-      res.cookies.set(PREVIEW_COOKIE, bypassSecret, {
+      res.cookies.set(PREVIEW_COOKIE, previewParam, {
         httpOnly: true,
         secure: true,
         sameSite: "lax",

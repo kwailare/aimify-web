@@ -3,10 +3,16 @@
 import { Fragment, useState, type FormEvent } from "react";
 import { Check, Copy, X } from "lucide-react";
 import { AdminActivityList } from "@/components/admin-activity-list";
+import { AdminConfirmAction } from "@/components/admin-confirm-action";
 import { AdminSendVerificationButton } from "@/components/admin-send-verification-button";
 import { AdminResetTwoFactorButton } from "@/components/admin-reset-two-factor-button";
 import { AdminVerifyEmailButton } from "@/components/admin-verify-email-button";
-import { resetUserPasswordAction } from "@/lib/actions/admin";
+import {
+  deleteUserAction,
+  reactivateUserAction,
+  resetUserPasswordAction,
+  suspendUserAction,
+} from "@/lib/actions/admin";
 import { formatDate, formatDateTime } from "@/lib/format-date";
 import {
   describeSubscriptionStatus,
@@ -54,6 +60,7 @@ export function AdminUsersTable({ users }: { users: AdminUser[] }) {
     if (filter === "admins" && !user.isAdmin) return false;
     if (filter === "no_org" && user.organizationId) return false;
     if (filter === "never_signed_in" && user.lastSignInAt) return false;
+    if (filter === "suspended" && !user.suspendedAt) return false;
 
     if (!query) return true;
 
@@ -159,6 +166,7 @@ export function AdminUsersTable({ users }: { users: AdminUser[] }) {
             <option value="admins">Admins</option>
             <option value="no_org">No organization</option>
             <option value="never_signed_in">Never signed in</option>
+            <option value="suspended">Suspended</option>
           </select>
         </div>
       </div>
@@ -302,7 +310,9 @@ export function AdminUsersTable({ users }: { users: AdminUser[] }) {
               </thead>
               <tbody>
                 {filtered.map((user) => {
-                  const isOpen = expandedId === user.id;
+                  // Someone in two organizations is listed once for each.
+                  const rowKey = `${user.id}-${user.organizationId ?? ""}`;
+                  const isOpen = expandedId === rowKey;
                   const orgStatus = user.organizationStatus
                     ? effectiveStatus(
                         user.organizationStatus,
@@ -311,7 +321,7 @@ export function AdminUsersTable({ users }: { users: AdminUser[] }) {
                     : null;
 
                   return (
-                    <Fragment key={user.id}>
+                    <Fragment key={rowKey}>
                       <tr>
                         <td>
                           <span className="admin-stack">
@@ -319,6 +329,9 @@ export function AdminUsersTable({ users }: { users: AdminUser[] }) {
                               {user.name}
                               {user.isAdmin && (
                                 <span className="admin-badge">Admin</span>
+                              )}
+                              {user.suspendedAt && (
+                                <span className="admin-badge">Suspended</span>
                               )}
                             </span>
                             <span className="admin-subline">{user.email}</span>
@@ -373,7 +386,7 @@ export function AdminUsersTable({ users }: { users: AdminUser[] }) {
                               type="button"
                               aria-expanded={isOpen}
                               onClick={() =>
-                                setExpandedId(isOpen ? null : user.id)
+                                setExpandedId(isOpen ? null : rowKey)
                               }
                             >
                               {isOpen ? "Hide details" : "View details"}
@@ -429,6 +442,11 @@ export function AdminUsersTable({ users }: { users: AdminUser[] }) {
                                     ? `${formatDateTime(user.lastSignInAt)} (${user.signInCount} total)`
                                     : "Never"}
                                 </DetailItem>
+                                <DetailItem label="Access">
+                                  {user.suspendedAt
+                                    ? `Suspended since ${formatDateTime(user.suspendedAt)}`
+                                    : "Can sign in"}
+                                </DetailItem>
                                 <DetailItem label="Platform role">
                                   {user.isAdmin ? "Admin" : "Standard user"}
                                 </DetailItem>
@@ -462,6 +480,36 @@ export function AdminUsersTable({ users }: { users: AdminUser[] }) {
                                   </>
                                 )}
                               </div>
+
+                              {!user.isAdmin && (
+                                <div className="admin-action-bar admin-danger-zone">
+                                  <p className="admin-detail-title">Account</p>
+                                  {user.suspendedAt ? (
+                                    <AdminConfirmAction
+                                      label="Reactivate user"
+                                      question={`Let ${user.email} sign in again?`}
+                                      confirmLabel="Yes, reactivate"
+                                      tone="positive"
+                                      action={() => reactivateUserAction(user.id)}
+                                    />
+                                  ) : (
+                                    <AdminConfirmAction
+                                      label="Suspend user"
+                                      question={`Sign ${user.email} out everywhere and stop them signing in? Their organization keeps working.`}
+                                      confirmLabel="Yes, suspend"
+                                      action={() => suspendUserAction(user.id)}
+                                    />
+                                  )}
+                                  <AdminConfirmAction
+                                    label="Delete user"
+                                    question={`Permanently delete ${user.email}? Their sign-in, sessions and support tickets are erased; records they made stay with their organization without their name. This can't be undone.`}
+                                    confirmLabel="Delete for good"
+                                    typeToConfirm={user.email}
+                                    action={(typed) => deleteUserAction(user.id, typed)}
+                                    onDone={() => setExpandedId(null)}
+                                  />
+                                </div>
+                              )}
                             </div>
                           </td>
                         </tr>

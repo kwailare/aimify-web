@@ -1,12 +1,19 @@
 "use server";
 
 import { randomBytes } from "crypto";
-import { and, eq, inArray, isNull } from "drizzle-orm";
+import { and, eq, inArray, isNotNull, isNull } from "drizzle-orm";
 import { after } from "next/server";
 import { hash } from "bcryptjs";
 import { db } from "@/db";
-import { organizations, users } from "@/db/schema";
+import { adminUsers, memberships, organizations, users } from "@/db/schema";
 import { getAdminContext } from "@/lib/admin";
+import {
+  AccountRemovalError,
+  deleteOrganization,
+  deleteOrganizationFiles,
+  deleteUser,
+  resetOrganizationData,
+} from "@/lib/admin-accounts";
 import { countAuditLogs, deleteAuditLogs } from "@/lib/activity-history";
 import { clearCutoff, isClearRange } from "@/lib/activity-ranges";
 import { getRecentActivity, logAudit } from "@/lib/audit";
@@ -457,4 +464,229 @@ export async function resetTwoFactorAction(userId: string) {
   });
 
   return { success: true };
+}
+
+// Admins can't be suspended or deleted from here, so the team can never
+// lock itself out.
+async function readTarget(userId: string) {
+  const [target] = await db
+    .select({
+      id: users.id,
+      email: users.email,
+      suspendedAt: users.suspendedAt,
+      adminId: adminUsers.id,
+    })
+    .from(users)
+    .leftJoin(adminUsers, eq(adminUsers.userId, users.id))
+    .where(eq(users.id, userId))
+    .limit(1);
+
+  return target ?? null;
+}
+
+export async function suspendUserAction(userId: string) {
+  const context = await getAdminContext();
+
+  if (!context) {
+    return { error: "Not authorized." };
+  }
+
+  const target = await readTarget(userId);
+
+  if (!target) {
+    return { error: "User not found." };
+  }
+
+  if (target.adminId) {
+    return { error: "Aimify admins can't be suspended." };
+  }
+
+  if (target.suspendedAt) {
+    return { error: "This user is already suspended." };
+  }
+
+  await db
+    .update(users)
+    .set({ suspendedAt: new Date() })
+    .where(eq(users.id, userId));
+  await revokeAllSessions(userId);
+
+  await logAudit({
+    userId: context.admin.id,
+    module: "admin",
+    action: "admin.user_suspended",
+    recordId: userId,
+    newValue: { targetEmail: target.email },
+  });
+
+  return { success: true };
+}
+
+export async function reactivateUserAction(userId: string) {
+  const context = await getAdminContext();
+
+  if (!context) {
+    return { error: "Not authorized." };
+  }
+
+  const [updated] = await db
+    .update(users)
+    .set({ suspendedAt: null })
+    .where(and(eq(users.id, userId), isNotNull(users.suspendedAt)))
+    .returning({ email: users.email });
+
+  if (!updated) {
+    return { error: "That user doesn't exist or isn't suspended." };
+  }
+
+  await logAudit({
+    userId: context.admin.id,
+    module: "admin",
+    action: "admin.user_reactivated",
+    recordId: userId,
+    newValue: { targetEmail: updated.email },
+  });
+
+  return { success: true };
+}
+
+export async function deleteUserAction(userId: string, confirmEmail: string) {
+  const context = await getAdminContext();
+
+  if (!context) {
+    return { error: "Not authorized." };
+  }
+
+  const target = await readTarget(userId);
+
+  if (!target) {
+    return { error: "User not found." };
+  }
+
+  if (target.adminId) {
+    return { error: "Aimify admins can't be deleted from here." };
+  }
+
+  if (confirmEmail.trim().toLowerCase() !== target.email.toLowerCase()) {
+    return { error: "Type the user's email address exactly to confirm." };
+  }
+
+  // Ends their sessions first, so nothing signed in outlives the account.
+  await revokeAllSessions(userId);
+
+  try {
+    await deleteUser(userId);
+  } catch (error) {
+    if (error instanceof AccountRemovalError) return { error: error.message };
+    throw error;
+  }
+
+  await logAudit({
+    userId: context.admin.id,
+    module: "admin",
+    action: "admin.user_deleted",
+    recordId: userId,
+    previousValue: { targetEmail: target.email },
+  });
+
+  return { success: true };
+}
+
+async function readOrganizationName(organizationId: string) {
+  const [org] = await db
+    .select({ name: organizations.name })
+    .from(organizations)
+    .where(eq(organizations.id, organizationId))
+    .limit(1);
+
+  return org?.name ?? null;
+}
+
+export async function resetOrganizationDataAction(
+  organizationId: string,
+  confirmName: string,
+) {
+  const context = await getAdminContext();
+
+  if (!context) {
+    return { error: "Not authorized." };
+  }
+
+  const name = await readOrganizationName(organizationId);
+
+  if (!name) {
+    return { error: "Organization not found." };
+  }
+
+  if (confirmName.trim() !== name.trim()) {
+    return { error: "Type the organization's name exactly to confirm." };
+  }
+
+  const removed = await resetOrganizationData(organizationId);
+
+  await logAudit({
+    organizationId,
+    userId: context.admin.id,
+    module: "admin",
+    action: "admin.organization_data_reset",
+    recordId: organizationId,
+    newValue: { recordsRemoved: removed },
+  });
+
+  after(() => deleteOrganizationFiles(organizationId, false));
+
+  return { success: true, removed };
+}
+
+export async function deleteOrganizationAction(
+  organizationId: string,
+  confirmName: string,
+) {
+  const context = await getAdminContext();
+
+  if (!context) {
+    return { error: "Not authorized." };
+  }
+
+  const name = await readOrganizationName(organizationId);
+
+  if (!name) {
+    return { error: "Organization not found." };
+  }
+
+  if (confirmName.trim() !== name.trim()) {
+    return { error: "Type the organization's name exactly to confirm." };
+  }
+
+  const members = await db
+    .select({ userId: memberships.userId })
+    .from(memberships)
+    .where(eq(memberships.organizationId, organizationId));
+
+  for (const member of members) {
+    await revokeAllSessions(member.userId);
+  }
+
+  let usersRemoved: number;
+
+  try {
+    usersRemoved = await deleteOrganization(organizationId);
+  } catch (error) {
+    if (error instanceof AccountRemovalError) return { error: error.message };
+    throw error;
+  }
+
+  // The organization is gone, so this entry belongs to no organization.
+  await logAudit({
+    userId: context.admin.id,
+    module: "admin",
+    action: "admin.organization_deleted",
+    recordId: organizationId,
+    previousValue: { name, members: members.length },
+    newValue: { usersRemoved },
+  });
+
+  after(() => deleteOrganizationFiles(organizationId, true));
+
+  return { success: true, usersRemoved };
 }

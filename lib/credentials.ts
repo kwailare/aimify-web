@@ -3,6 +3,9 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 
+export const SUSPENDED_MESSAGE =
+  "This account has been suspended. Contact support@aimify.app for help.";
+
 export async function verifyCredentials(email: string, password: string) {
   const normalizedEmail = email.trim().toLowerCase();
 

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { verifyCredentials } from "@/lib/credentials";
+import { SUSPENDED_MESSAGE, verifyCredentials } from "@/lib/credentials";
 import { createApiToken } from "@/lib/api-auth";
 import { createSession, metaFromHeaders } from "@/lib/sessions";
 import { isTwoFactorEnabled, verifyLoginCode } from "@/lib/two-factor";
@@ -36,6 +36,13 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { error: "Invalid email or password." },
       { status: 401 },
+    );
+  }
+
+  if (user.suspendedAt) {
+    return NextResponse.json(
+      { error: SUSPENDED_MESSAGE, code: "user_suspended" },
+      { status: 403 },
     );
   }
 

@@ -191,6 +191,7 @@ const MODULES = [
     items: [
       [D, "Platform dashboard: organizations, subscriptions, MRR, new registrations, churn", "Overview plus an Insights page."],
       [D, "Organization management: view, search, suspend, reactivate, usage and activity", ""],
+      [D, "Account control: suspend a single user, reset an organization's data, delete a user or a whole organization", "From the admin Users and Organizations pages. Resetting and deleting can't be undone and need the name or email typed to confirm; a suspended user can't sign in anywhere and is signed out; a sole Owner can't be deleted on their own."],
       [D, "Plan configuration: create, edit, disable, limits and pricing", ""],
       [D, "Payment history, support tickets and issue tracking", "Payments page and a support inbox with email replies."],
     ],

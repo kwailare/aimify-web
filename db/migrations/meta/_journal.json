@@ -267,6 +267,20 @@
       "when": 1794235401936,
       "tag": "0037_tick_whatsapp_with_phone",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1794950638603,
+      "tag": "0038_vengeful_master_mold",
+      "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1794950644306,
+      "tag": "0039_admin_account_removal",
+      "breakpoints": true
     }
   ]
 }

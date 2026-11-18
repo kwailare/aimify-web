@@ -4,10 +4,15 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Fragment, useState } from "react";
 import { AdminActivityList } from "@/components/admin-activity-list";
+import { AdminConfirmAction } from "@/components/admin-confirm-action";
 import { OrgActionButton } from "@/components/org-action-button";
 import {
   activateSubscriptionAction,
   extendTrialAction,
+} from "@/lib/actions/admin";
+import {
+  deleteOrganizationAction,
+  resetOrganizationDataAction,
 } from "@/lib/actions/admin";
 import { assignOrganizationPlanAction } from "@/lib/actions/admin-plans";
 import type { AdminOrganization } from "@/lib/admin";
@@ -545,6 +550,29 @@ export function AdminOrganizationsTable({
                                     {orgNotice.text}
                                   </span>
                                 )}
+                              </div>
+
+                              <div className="admin-action-bar admin-danger-zone">
+                                <p className="admin-detail-title">Danger zone</p>
+                                <AdminConfirmAction
+                                  label="Reset data"
+                                  question={`Erase all of ${org.name}'s products, stock, sales, purchases, customers, suppliers and expenses? The organization, its team, warehouses, plan and billing stay. This can't be undone.`}
+                                  confirmLabel="Reset data"
+                                  typeToConfirm={org.name}
+                                  action={(typed) =>
+                                    resetOrganizationDataAction(org.id, typed)
+                                  }
+                                />
+                                <AdminConfirmAction
+                                  label="Delete organization"
+                                  question={`Permanently delete ${org.name} and everything in it, including its payments history? Members who aren't in another organization are deleted too. This can't be undone.`}
+                                  confirmLabel="Delete for good"
+                                  typeToConfirm={org.name}
+                                  action={(typed) =>
+                                    deleteOrganizationAction(org.id, typed)
+                                  }
+                                  onDone={() => setExpandedId(null)}
+                                />
                               </div>
                             </div>
                           </td>

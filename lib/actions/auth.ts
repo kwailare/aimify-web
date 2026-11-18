@@ -16,7 +16,7 @@ import {
 } from "@/lib/email-verification";
 import { consumeResetToken, issueResetToken } from "@/lib/password-reset";
 import { revokeAllSessions } from "@/lib/sessions";
-import { verifyCredentials } from "@/lib/credentials";
+import { SUSPENDED_MESSAGE, verifyCredentials } from "@/lib/credentials";
 import { isTwoFactorEnabled } from "@/lib/two-factor";
 import { validateNewPassword } from "@/lib/password-rules";
 import { SITE_URL } from "@/lib/site";
@@ -185,6 +185,10 @@ export async function signInAction(formData: FormData) {
   if (!knownUser) {
     await recordLoginAttempt(identifiers, false);
     return { error: "Invalid email or password." };
+  }
+
+  if (knownUser.suspendedAt) {
+    return { error: SUSPENDED_MESSAGE };
   }
 
   const code = String(formData.get("code") ?? "").trim();

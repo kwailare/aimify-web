@@ -499,6 +499,8 @@ chapter(
 ${list([
   "See an overview of the platform: how many businesses use it, new sign-ups, trials, paying subscribers and monthly income.",
   "Look up a business, see its plan and usage, and suspend or reactivate it.",
+  "Suspend one person (they can't sign in until reactivated; the rest of their business carries on), or reset their password or two-factor.",
+  "On request, <b>reset a business's data</b> for a fresh start (products, stock, sales, purchases, customers, suppliers and expenses are erased; the team, warehouses and subscription stay), or <b>delete a person or a whole business</b> for good. These can't be undone, so the team must type the name or email to confirm.",
   "Create the <b>plans</b>, set their prices and limits, and switch plans on or off.",
   "See all subscription payments.",
   "Answer support messages.",

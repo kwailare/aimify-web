@@ -143,6 +143,7 @@ export async function getAllUsers() {
       phone: users.phone,
       emailVerifiedAt: users.emailVerifiedAt,
       twoFactorEnabledAt: users.twoFactorEnabledAt,
+      suspendedAt: users.suspendedAt,
       createdAt: users.createdAt,
       role: memberships.role,
       organizationId: organizations.id,

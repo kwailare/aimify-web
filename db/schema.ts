@@ -75,6 +75,9 @@ export const users = pgTable("users", {
   twoFactorSecret: text(),
   twoFactorEnabledAt: timestamp(),
   twoFactorLastStep: integer(),
+  // Set by the Aimify team: this person can't sign in anywhere until it's
+  // cleared. Their organization keeps working.
+  suspendedAt: timestamp(),
   createdAt: timestamp().defaultNow().notNull(),
 });
 

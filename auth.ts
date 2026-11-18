@@ -35,7 +35,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         const user = await verifyCredentials(email, password);
 
-        if (!user) {
+        if (!user || user.suspendedAt) {
           return null;
         }
 

@@ -1,4 +1,4 @@
-import { del, put } from "@vercel/blob";
+import { del, list, put } from "@vercel/blob";
 import type { ValidImage } from "@/lib/images";
 
 const BLOB_HOST_SUFFIX = ".public.blob.vercel-storage.com";
@@ -37,5 +37,21 @@ export async function deleteOwnedBlob(
     await del(url);
   } catch (error) {
     console.error("Could not delete blob:", error);
+  }
+}
+
+/** Deletes every file under a folder, such as products/<organization id>/. */
+export async function deleteBlobFolder(prefix: string) {
+  if (!isBlobConfigured() || !/^[a-z]+\/[0-9a-f-]{36}\/$/.test(prefix)) return;
+
+  try {
+    let cursor: string | undefined;
+    do {
+      const page = await list({ prefix, cursor, limit: 1000 });
+      if (page.blobs.length > 0) await del(page.blobs.map((blob) => blob.url));
+      cursor = page.hasMore ? page.cursor : undefined;
+    } while (cursor);
+  } catch (error) {
+    console.error("Could not delete blob folder:", error);
   }
 }
